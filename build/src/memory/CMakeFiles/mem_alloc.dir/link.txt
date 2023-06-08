@@ -1,2 +1,0 @@
-/usr/bin/ar qc libmem_alloc.a CMakeFiles/mem_alloc.dir/intern/alloc_secured_impl.c.o CMakeFiles/mem_alloc.dir/intern/alloc_light_impl.c.o CMakeFiles/mem_alloc.dir/intern/malloc.c.o
-/usr/bin/ranlib libmem_alloc.a
