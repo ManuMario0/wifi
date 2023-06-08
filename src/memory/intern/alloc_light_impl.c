@@ -1,8 +1,7 @@
 /*
  * alloc_light_impl.c
- * This file is part of synthesis
  *
- * Copyright (C) 2021 Mera Emmanuel <emmanuel.mera@live.fr>.
+ * Copyright (C) 2023 Mera Emmanuel <emmanuel.mera@live.fr>.
  *
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
@@ -57,12 +56,12 @@ static void rm_memblock_from_memlist(MemHead *memh);
 static void add_memblock(MemHead *memh);
 static const char *check_memlist(MemHead *memh);
 */
-static void mem_lock_thread()
+static void mem_lock_thread(void)
 {
     pthread_mutex_lock(&mem_lock);
 }
 
-static void mem_unlock_thread()
+static void mem_unlock_thread(void)
 {
     pthread_mutex_unlock(&mem_lock);
 }

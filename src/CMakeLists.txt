@@ -10,3 +10,6 @@ set_target_properties(wifi PROPERTIES VERSION ${CMAKE_PROJECT_VERSION})
 # -----------------------------------
 
 add_subdirectory("memory")
+add_subdirectory("kernel")
+add_subdirectory("csv")
+add_subdirectory("device")

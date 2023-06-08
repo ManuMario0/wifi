@@ -13,9 +13,11 @@ set(CMAKE_MAKEFILE_DEPENDS
   "CMakeFiles/3.20.2/CMakeSystem.cmake"
   "../cmake/macros.cmake"
   "../lib/CMakeLists.txt"
-  "../lib/libcsv/CMakeLists.txt"
   "../resources/CMakeLists.txt"
   "../src/CMakeLists.txt"
+  "../src/csv/CMakeLists.txt"
+  "../src/device/CMakeLists.txt"
+  "../src/kernel/CMakeLists.txt"
   "../src/memory/CMakeLists.txt"
   "/usr/local/Cellar/cmake/3.20.2/share/cmake/Modules/CMakeCInformation.cmake"
   "/usr/local/Cellar/cmake/3.20.2/share/cmake/Modules/CMakeCXXInformation.cmake"
@@ -54,15 +56,19 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "wifi.app/Contents/Info.plist"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   "lib/CMakeFiles/CMakeDirectoryInformation.cmake"
-  "lib/libcsv/CMakeFiles/CMakeDirectoryInformation.cmake"
   "resources/CMakeFiles/CMakeDirectoryInformation.cmake"
   "src/CMakeFiles/CMakeDirectoryInformation.cmake"
   "src/memory/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "src/kernel/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "src/csv/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "src/device/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/wifi.dir/DependInfo.cmake"
-  "lib/libcsv/CMakeFiles/libcsv.dir/DependInfo.cmake"
   "src/memory/CMakeFiles/mem_alloc.dir/DependInfo.cmake"
+  "src/kernel/CMakeFiles/kernel.dir/DependInfo.cmake"
+  "src/csv/CMakeFiles/csv.dir/DependInfo.cmake"
+  "src/device/CMakeFiles/device.dir/DependInfo.cmake"
   )

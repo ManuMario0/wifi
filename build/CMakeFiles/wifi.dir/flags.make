@@ -4,7 +4,7 @@
 # compile C with /usr/bin/gcc
 C_DEFINES = 
 
-C_INCLUDES = -I/usr/local/include -I/Users/emmanuel/Documents/developement/wifi/wifi/lib/libcsv/. -I/Users/emmanuel/Documents/developement/wifi/wifi/src/memory/.
+C_INCLUDES = -I/usr/local/include -I/Users/emmanuel/Documents/developement/wifi/wifi/src/memory/. -I/Users/emmanuel/Documents/developement/wifi/wifi/src/kernel/. -I/Users/emmanuel/Documents/developement/wifi/wifi/src/kernel/../memory -I/Users/emmanuel/Documents/developement/wifi/wifi/src/csv/. -I/Users/emmanuel/Documents/developement/wifi/wifi/src/csv/../kernel -I/Users/emmanuel/Documents/developement/wifi/wifi/src/device/. -I/Users/emmanuel/Documents/developement/wifi/wifi/src/device/../csv
 
 C_FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk
 

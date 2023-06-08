@@ -130,19 +130,6 @@ wifi/fast:
 .PHONY : wifi/fast
 
 #=============================================================================
-# Target rules for targets named libcsv
-
-# Build rule for target.
-libcsv: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 libcsv
-.PHONY : libcsv
-
-# fast build rule for target.
-libcsv/fast:
-	$(MAKE) $(MAKESILENT) -f lib/libcsv/CMakeFiles/libcsv.dir/build.make lib/libcsv/CMakeFiles/libcsv.dir/build
-.PHONY : libcsv/fast
-
-#=============================================================================
 # Target rules for targets named mem_alloc
 
 # Build rule for target.
@@ -154,6 +141,45 @@ mem_alloc: cmake_check_build_system
 mem_alloc/fast:
 	$(MAKE) $(MAKESILENT) -f src/memory/CMakeFiles/mem_alloc.dir/build.make src/memory/CMakeFiles/mem_alloc.dir/build
 .PHONY : mem_alloc/fast
+
+#=============================================================================
+# Target rules for targets named kernel
+
+# Build rule for target.
+kernel: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 kernel
+.PHONY : kernel
+
+# fast build rule for target.
+kernel/fast:
+	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/build
+.PHONY : kernel/fast
+
+#=============================================================================
+# Target rules for targets named csv
+
+# Build rule for target.
+csv: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 csv
+.PHONY : csv
+
+# fast build rule for target.
+csv/fast:
+	$(MAKE) $(MAKESILENT) -f src/csv/CMakeFiles/csv.dir/build.make src/csv/CMakeFiles/csv.dir/build
+.PHONY : csv/fast
+
+#=============================================================================
+# Target rules for targets named device
+
+# Build rule for target.
+device: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 device
+.PHONY : device
+
+# fast build rule for target.
+device/fast:
+	$(MAKE) $(MAKESILENT) -f src/device/CMakeFiles/device.dir/build.make src/device/CMakeFiles/device.dir/build
+.PHONY : device/fast
 
 src/main.o: src/main.c.o
 .PHONY : src/main.o
@@ -187,7 +213,9 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... libcsv"
+	@echo "... csv"
+	@echo "... device"
+	@echo "... kernel"
 	@echo "... mem_alloc"
 	@echo "... wifi"
 	@echo "... src/main.o"

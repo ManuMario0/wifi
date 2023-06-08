@@ -1,12 +1,12 @@
 //
-//  csv.h
-//  empty
+//  CSV_common.h
+//  wifi
 //
-//  Created by Emmanuel Mera on 05/06/2023.
+//  Created by Emmanuel Mera on 08/06/2023.
 //
 
-#ifndef csv_h
-#define csv_h
+#ifndef CSV_common_h
+#define CSV_common_h
 
 #include <stdio.h>
 
@@ -52,4 +52,6 @@ typedef struct {
     CSV_type *  types;
 } CSV_file;
 
-#endif /* csv_h */
+extern CSV_file *CSV_parse(FILE *fp, int *flags, int flags_length);
+
+#endif /* CSV_common_h */

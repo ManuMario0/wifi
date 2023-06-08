@@ -1,8 +1,7 @@
 /*
  * alloc_light_impl.h
- * This file is part of synthesis
  *
- * Copyright (C) 2021 Mera Emmanuel <emmanuel.mera@live.fr>.
+ * Copyright (C) 2023 Mera Emmanuel <emmanuel.mera@live.fr>.
  *
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file

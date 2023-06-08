@@ -86,31 +86,16 @@ clean: src/clean
 # Directory level rules for directory lib
 
 # Recursive "all" directory target.
-lib/all: lib/libcsv/all
+lib/all:
 .PHONY : lib/all
 
 # Recursive "preinstall" directory target.
-lib/preinstall: lib/libcsv/preinstall
+lib/preinstall:
 .PHONY : lib/preinstall
 
 # Recursive "clean" directory target.
-lib/clean: lib/libcsv/clean
+lib/clean:
 .PHONY : lib/clean
-
-#=============================================================================
-# Directory level rules for directory lib/libcsv
-
-# Recursive "all" directory target.
-lib/libcsv/all: lib/libcsv/CMakeFiles/libcsv.dir/all
-.PHONY : lib/libcsv/all
-
-# Recursive "preinstall" directory target.
-lib/libcsv/preinstall:
-.PHONY : lib/libcsv/preinstall
-
-# Recursive "clean" directory target.
-lib/libcsv/clean: lib/libcsv/CMakeFiles/libcsv.dir/clean
-.PHONY : lib/libcsv/clean
 
 #=============================================================================
 # Directory level rules for directory resources
@@ -132,15 +117,69 @@ resources/clean:
 
 # Recursive "all" directory target.
 src/all: src/memory/all
+src/all: src/kernel/all
+src/all: src/csv/all
+src/all: src/device/all
 .PHONY : src/all
 
 # Recursive "preinstall" directory target.
 src/preinstall: src/memory/preinstall
+src/preinstall: src/kernel/preinstall
+src/preinstall: src/csv/preinstall
+src/preinstall: src/device/preinstall
 .PHONY : src/preinstall
 
 # Recursive "clean" directory target.
 src/clean: src/memory/clean
+src/clean: src/kernel/clean
+src/clean: src/csv/clean
+src/clean: src/device/clean
 .PHONY : src/clean
+
+#=============================================================================
+# Directory level rules for directory src/csv
+
+# Recursive "all" directory target.
+src/csv/all: src/csv/CMakeFiles/csv.dir/all
+.PHONY : src/csv/all
+
+# Recursive "preinstall" directory target.
+src/csv/preinstall:
+.PHONY : src/csv/preinstall
+
+# Recursive "clean" directory target.
+src/csv/clean: src/csv/CMakeFiles/csv.dir/clean
+.PHONY : src/csv/clean
+
+#=============================================================================
+# Directory level rules for directory src/device
+
+# Recursive "all" directory target.
+src/device/all: src/device/CMakeFiles/device.dir/all
+.PHONY : src/device/all
+
+# Recursive "preinstall" directory target.
+src/device/preinstall:
+.PHONY : src/device/preinstall
+
+# Recursive "clean" directory target.
+src/device/clean: src/device/CMakeFiles/device.dir/clean
+.PHONY : src/device/clean
+
+#=============================================================================
+# Directory level rules for directory src/kernel
+
+# Recursive "all" directory target.
+src/kernel/all: src/kernel/CMakeFiles/kernel.dir/all
+.PHONY : src/kernel/all
+
+# Recursive "preinstall" directory target.
+src/kernel/preinstall:
+.PHONY : src/kernel/preinstall
+
+# Recursive "clean" directory target.
+src/kernel/clean: src/kernel/CMakeFiles/kernel.dir/clean
+.PHONY : src/kernel/clean
 
 #=============================================================================
 # Directory level rules for directory src/memory
@@ -161,16 +200,18 @@ src/memory/clean: src/memory/CMakeFiles/mem_alloc.dir/clean
 # Target rules for target CMakeFiles/wifi.dir
 
 # All Build rule for target.
-CMakeFiles/wifi.dir/all: lib/libcsv/CMakeFiles/libcsv.dir/all
 CMakeFiles/wifi.dir/all: src/memory/CMakeFiles/mem_alloc.dir/all
+CMakeFiles/wifi.dir/all: src/kernel/CMakeFiles/kernel.dir/all
+CMakeFiles/wifi.dir/all: src/csv/CMakeFiles/csv.dir/all
+CMakeFiles/wifi.dir/all: src/device/CMakeFiles/device.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/wifi.dir/build.make CMakeFiles/wifi.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/wifi.dir/build.make CMakeFiles/wifi.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=7,8 "Built target wifi"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=12,13 "Built target wifi"
 .PHONY : CMakeFiles/wifi.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/wifi.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 13
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/wifi.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 0
 .PHONY : CMakeFiles/wifi.dir/rule
@@ -185,39 +226,13 @@ CMakeFiles/wifi.dir/clean:
 .PHONY : CMakeFiles/wifi.dir/clean
 
 #=============================================================================
-# Target rules for target lib/libcsv/CMakeFiles/libcsv.dir
-
-# All Build rule for target.
-lib/libcsv/CMakeFiles/libcsv.dir/all:
-	$(MAKE) $(MAKESILENT) -f lib/libcsv/CMakeFiles/libcsv.dir/build.make lib/libcsv/CMakeFiles/libcsv.dir/depend
-	$(MAKE) $(MAKESILENT) -f lib/libcsv/CMakeFiles/libcsv.dir/build.make lib/libcsv/CMakeFiles/libcsv.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=1,2 "Built target libcsv"
-.PHONY : lib/libcsv/CMakeFiles/libcsv.dir/all
-
-# Build rule for subdir invocation for target.
-lib/libcsv/CMakeFiles/libcsv.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 2
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 lib/libcsv/CMakeFiles/libcsv.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 0
-.PHONY : lib/libcsv/CMakeFiles/libcsv.dir/rule
-
-# Convenience name for target.
-libcsv: lib/libcsv/CMakeFiles/libcsv.dir/rule
-.PHONY : libcsv
-
-# clean rule for target.
-lib/libcsv/CMakeFiles/libcsv.dir/clean:
-	$(MAKE) $(MAKESILENT) -f lib/libcsv/CMakeFiles/libcsv.dir/build.make lib/libcsv/CMakeFiles/libcsv.dir/clean
-.PHONY : lib/libcsv/CMakeFiles/libcsv.dir/clean
-
-#=============================================================================
 # Target rules for target src/memory/CMakeFiles/mem_alloc.dir
 
 # All Build rule for target.
 src/memory/CMakeFiles/mem_alloc.dir/all:
 	$(MAKE) $(MAKESILENT) -f src/memory/CMakeFiles/mem_alloc.dir/build.make src/memory/CMakeFiles/mem_alloc.dir/depend
 	$(MAKE) $(MAKESILENT) -f src/memory/CMakeFiles/mem_alloc.dir/build.make src/memory/CMakeFiles/mem_alloc.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=3,4,5,6 "Built target mem_alloc"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=8,9,10,11 "Built target mem_alloc"
 .PHONY : src/memory/CMakeFiles/mem_alloc.dir/all
 
 # Build rule for subdir invocation for target.
@@ -235,6 +250,86 @@ mem_alloc: src/memory/CMakeFiles/mem_alloc.dir/rule
 src/memory/CMakeFiles/mem_alloc.dir/clean:
 	$(MAKE) $(MAKESILENT) -f src/memory/CMakeFiles/mem_alloc.dir/build.make src/memory/CMakeFiles/mem_alloc.dir/clean
 .PHONY : src/memory/CMakeFiles/mem_alloc.dir/clean
+
+#=============================================================================
+# Target rules for target src/kernel/CMakeFiles/kernel.dir
+
+# All Build rule for target.
+src/kernel/CMakeFiles/kernel.dir/all: src/memory/CMakeFiles/mem_alloc.dir/all
+	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/depend
+	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=5,6,7 "Built target kernel"
+.PHONY : src/kernel/CMakeFiles/kernel.dir/all
+
+# Build rule for subdir invocation for target.
+src/kernel/CMakeFiles/kernel.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 7
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/kernel/CMakeFiles/kernel.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 0
+.PHONY : src/kernel/CMakeFiles/kernel.dir/rule
+
+# Convenience name for target.
+kernel: src/kernel/CMakeFiles/kernel.dir/rule
+.PHONY : kernel
+
+# clean rule for target.
+src/kernel/CMakeFiles/kernel.dir/clean:
+	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/clean
+.PHONY : src/kernel/CMakeFiles/kernel.dir/clean
+
+#=============================================================================
+# Target rules for target src/csv/CMakeFiles/csv.dir
+
+# All Build rule for target.
+src/csv/CMakeFiles/csv.dir/all: src/memory/CMakeFiles/mem_alloc.dir/all
+src/csv/CMakeFiles/csv.dir/all: src/kernel/CMakeFiles/kernel.dir/all
+	$(MAKE) $(MAKESILENT) -f src/csv/CMakeFiles/csv.dir/build.make src/csv/CMakeFiles/csv.dir/depend
+	$(MAKE) $(MAKESILENT) -f src/csv/CMakeFiles/csv.dir/build.make src/csv/CMakeFiles/csv.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=1,2 "Built target csv"
+.PHONY : src/csv/CMakeFiles/csv.dir/all
+
+# Build rule for subdir invocation for target.
+src/csv/CMakeFiles/csv.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 9
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/csv/CMakeFiles/csv.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 0
+.PHONY : src/csv/CMakeFiles/csv.dir/rule
+
+# Convenience name for target.
+csv: src/csv/CMakeFiles/csv.dir/rule
+.PHONY : csv
+
+# clean rule for target.
+src/csv/CMakeFiles/csv.dir/clean:
+	$(MAKE) $(MAKESILENT) -f src/csv/CMakeFiles/csv.dir/build.make src/csv/CMakeFiles/csv.dir/clean
+.PHONY : src/csv/CMakeFiles/csv.dir/clean
+
+#=============================================================================
+# Target rules for target src/device/CMakeFiles/device.dir
+
+# All Build rule for target.
+src/device/CMakeFiles/device.dir/all: src/memory/CMakeFiles/mem_alloc.dir/all
+src/device/CMakeFiles/device.dir/all: src/kernel/CMakeFiles/kernel.dir/all
+	$(MAKE) $(MAKESILENT) -f src/device/CMakeFiles/device.dir/build.make src/device/CMakeFiles/device.dir/depend
+	$(MAKE) $(MAKESILENT) -f src/device/CMakeFiles/device.dir/build.make src/device/CMakeFiles/device.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=3,4 "Built target device"
+.PHONY : src/device/CMakeFiles/device.dir/all
+
+# Build rule for subdir invocation for target.
+src/device/CMakeFiles/device.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 9
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/device/CMakeFiles/device.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles 0
+.PHONY : src/device/CMakeFiles/device.dir/rule
+
+# Convenience name for target.
+device: src/device/CMakeFiles/device.dir/rule
+.PHONY : device
+
+# clean rule for target.
+src/device/CMakeFiles/device.dir/clean:
+	$(MAKE) $(MAKESILENT) -f src/device/CMakeFiles/device.dir/build.make src/device/CMakeFiles/device.dir/clean
+.PHONY : src/device/CMakeFiles/device.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

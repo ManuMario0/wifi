@@ -92,7 +92,11 @@ wifi_EXTERNAL_OBJECTS =
 
 wifi.app/Contents/MacOS/wifi-0.0.1: CMakeFiles/wifi.dir/src/main.c.o
 wifi.app/Contents/MacOS/wifi-0.0.1: CMakeFiles/wifi.dir/build.make
-wifi.app/Contents/MacOS/wifi-0.0.1: lib/libcsv/liblibcsv.a
+wifi.app/Contents/MacOS/wifi-0.0.1: src/memory/libmem_alloc.a
+wifi.app/Contents/MacOS/wifi-0.0.1: src/kernel/libkernel.a
+wifi.app/Contents/MacOS/wifi-0.0.1: src/csv/libcsv.a
+wifi.app/Contents/MacOS/wifi-0.0.1: src/device/libdevice.a
+wifi.app/Contents/MacOS/wifi-0.0.1: src/kernel/libkernel.a
 wifi.app/Contents/MacOS/wifi-0.0.1: src/memory/libmem_alloc.a
 wifi.app/Contents/MacOS/wifi-0.0.1: CMakeFiles/wifi.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking C executable wifi.app/Contents/MacOS/wifi"

@@ -13,6 +13,9 @@
 		1462BBF22A2DDCE700436A40 /* alloc_secured_impl.c in Sources */ = {isa = PBXBuildFile; fileRef = 1462BBED2A2DDCE700436A40 /* alloc_secured_impl.c */; };
 		1462BBF32A2DDCE700436A40 /* malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 1462BBEE2A2DDCE700436A40 /* malloc.c */; };
 		1462BBFE2A2DE14B00436A40 /* csv.c in Sources */ = {isa = PBXBuildFile; fileRef = 1462BBFD2A2DE14B00436A40 /* csv.c */; };
+		1462BC072A31E26F00436A40 /* xxhash.c in Sources */ = {isa = PBXBuildFile; fileRef = 1462BC042A31E26F00436A40 /* xxhash.c */; };
+		1462BC082A31E26F00436A40 /* hash_table.c in Sources */ = {isa = PBXBuildFile; fileRef = 1462BC052A31E26F00436A40 /* hash_table.c */; };
+		1462BC0F2A31EC8100436A40 /* device.c in Sources */ = {isa = PBXBuildFile; fileRef = 1462BC0E2A31EC8100436A40 /* device.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -50,6 +53,17 @@
 		1462BBF92A2DE07300436A40 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		1462BBFC2A2DE14B00436A40 /* csv.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = csv.h; sourceTree = "<group>"; };
 		1462BBFD2A2DE14B00436A40 /* csv.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = csv.c; sourceTree = "<group>"; };
+		1462BBFF2A31D12300436A40 /* CSV_common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSV_common.h; sourceTree = "<group>"; };
+		1462BC002A31D29000436A40 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		1462BC032A31E26F00436A40 /* xxhash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xxhash.h; sourceTree = "<group>"; };
+		1462BC042A31E26F00436A40 /* xxhash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xxhash.c; sourceTree = "<group>"; };
+		1462BC052A31E26F00436A40 /* hash_table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hash_table.c; sourceTree = "<group>"; };
+		1462BC062A31E26F00436A40 /* KER_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KER_table.h; sourceTree = "<group>"; };
+		1462BC092A31E51500436A40 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		1462BC0B2A31EC2F00436A40 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		1462BC0D2A31EC8100436A40 /* device.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = device.h; sourceTree = "<group>"; };
+		1462BC0E2A31EC8100436A40 /* device.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = device.c; sourceTree = "<group>"; };
+		1462BC102A3201E000436A40 /* DEVICE_common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DEVICE_common.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +112,8 @@
 		1462BBD22A2DDB6C00436A40 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				1462BC0A2A31EBD700436A40 /* device */,
+				1462BC012A31E26F00436A40 /* kernel */,
 				1462BBFA2A2DE13300436A40 /* csv */,
 				1462BBE32A2DDCE700436A40 /* CMakeLists.txt */,
 				1462BBE42A2DDCE700436A40 /* memory */,
@@ -166,6 +182,8 @@
 			isa = PBXGroup;
 			children = (
 				1462BBFB2A2DE13A00436A40 /* intern */,
+				1462BBFF2A31D12300436A40 /* CSV_common.h */,
+				1462BC002A31D29000436A40 /* CMakeLists.txt */,
 			);
 			path = csv;
 			sourceTree = "<group>";
@@ -175,6 +193,45 @@
 			children = (
 				1462BBFC2A2DE14B00436A40 /* csv.h */,
 				1462BBFD2A2DE14B00436A40 /* csv.c */,
+			);
+			path = intern;
+			sourceTree = "<group>";
+		};
+		1462BC012A31E26F00436A40 /* kernel */ = {
+			isa = PBXGroup;
+			children = (
+				1462BC092A31E51500436A40 /* CMakeLists.txt */,
+				1462BC022A31E26F00436A40 /* intern */,
+				1462BC062A31E26F00436A40 /* KER_table.h */,
+			);
+			path = kernel;
+			sourceTree = "<group>";
+		};
+		1462BC022A31E26F00436A40 /* intern */ = {
+			isa = PBXGroup;
+			children = (
+				1462BC032A31E26F00436A40 /* xxhash.h */,
+				1462BC042A31E26F00436A40 /* xxhash.c */,
+				1462BC052A31E26F00436A40 /* hash_table.c */,
+			);
+			path = intern;
+			sourceTree = "<group>";
+		};
+		1462BC0A2A31EBD700436A40 /* device */ = {
+			isa = PBXGroup;
+			children = (
+				1462BC0B2A31EC2F00436A40 /* CMakeLists.txt */,
+				1462BC102A3201E000436A40 /* DEVICE_common.h */,
+				1462BC0C2A31EC2F00436A40 /* intern */,
+			);
+			path = device;
+			sourceTree = "<group>";
+		};
+		1462BC0C2A31EC2F00436A40 /* intern */ = {
+			isa = PBXGroup;
+			children = (
+				1462BC0D2A31EC8100436A40 /* device.h */,
+				1462BC0E2A31EC8100436A40 /* device.c */,
 			);
 			path = intern;
 			sourceTree = "<group>";
@@ -257,10 +314,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1462BC0F2A31EC8100436A40 /* device.c in Sources */,
+				1462BC082A31E26F00436A40 /* hash_table.c in Sources */,
 				1462BBFE2A2DE14B00436A40 /* csv.c in Sources */,
 				1462BBF12A2DDCE700436A40 /* alloc_light_impl.c in Sources */,
 				1462BBE02A2DDBAD00436A40 /* main.c in Sources */,
 				1462BBF02A2DDCE700436A40 /* secured_tests.c in Sources */,
+				1462BC072A31E26F00436A40 /* xxhash.c in Sources */,
 				1462BBF32A2DDCE700436A40 /* malloc.c in Sources */,
 				1462BBF22A2DDCE700436A40 /* alloc_secured_impl.c in Sources */,
 			);
