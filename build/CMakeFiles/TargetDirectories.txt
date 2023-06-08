@@ -1,0 +1,15 @@
+/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles/rebuild_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles/edit_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/CMakeFiles/wifi.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/lib/CMakeFiles/rebuild_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/lib/CMakeFiles/edit_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/lib/libcsv/CMakeFiles/rebuild_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/lib/libcsv/CMakeFiles/edit_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/lib/libcsv/CMakeFiles/libcsv.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/resources/CMakeFiles/rebuild_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/resources/CMakeFiles/edit_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/src/CMakeFiles/rebuild_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/src/CMakeFiles/edit_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/src/memory/CMakeFiles/rebuild_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/src/memory/CMakeFiles/edit_cache.dir
+/Users/emmanuel/Documents/developement/wifi/wifi/build/src/memory/CMakeFiles/mem_alloc.dir
