@@ -199,3 +199,11 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
     
     return rlt;
 }
+
+void USR_print_users_stats(USR_user_list *ul) {
+    printf("Total users : %ld\n", ul->user_count);
+    printf("DEVICES MOBILE FIXE UNKNOWN   UID\n");
+    for (long i=0; i<ul->user_count; i++) {
+        printf("%7ld %6ld %4ld %7ld %5ld\n", ul->users[i].device_count, ul->users[i].stats[MOBILE], ul->users[i].stats[FIXE], ul->users[i].stats[2], i);
+    }
+}

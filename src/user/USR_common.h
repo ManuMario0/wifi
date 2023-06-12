@@ -47,5 +47,6 @@ extern USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
                                                     CSV_date           record_start,
                                                     CSV_date           record_end,
                                                     int                filter);
+extern void USR_print_users_stats(USR_user_list *ul);
 
 #endif /* USR_common_h */

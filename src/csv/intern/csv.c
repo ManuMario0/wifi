@@ -52,7 +52,9 @@ long CSV_get_row_count(FILE *fp) {
     return row;
 }
 
-CSV_file *CSV_parse(FILE *fp, int *flags, int flags_length) {
+CSV_file *CSV_parse(char file_name[], int *flags, int flags_length) {
+    FILE *fp = fopen(file_name, "r");
+    
     long column = CSV_get_column_count(fp);
     char buff[2048];
     
@@ -62,6 +64,8 @@ CSV_file *CSV_parse(FILE *fp, int *flags, int flags_length) {
     CSV_file *f = MEM_malloc(sizeof(CSV_file), __func__);
     f->row_count = CSV_get_row_count(fp);
     f->column_count = 0;
+    f->file_name = MEM_malloc(strlen(file_name)+1, __func__);
+    memcpy(f->file_name, file_name, strlen(file_name)+1);
     
     for (int i=0; i<column; i++) {
         if (flags[i] != CSV_SKIP) {
@@ -147,6 +151,8 @@ CSV_file *CSV_parse(FILE *fp, int *flags, int flags_length) {
             }
         }
     }
+    
+    fclose(fp);
     return f;
 }
 

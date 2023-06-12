@@ -21,6 +21,9 @@
 /* ---------------------------- */
 
 long find_floor_index(Device *d, time_t ts);
+float *load_graph(FILE *fp, long size);
+void write_graph(FILE *fp, float *graph, long size);
+char *build_graph_name(CSV_file *f);
 
 /* ---------------------------- */
 /*  implementation              */
@@ -57,6 +60,8 @@ DEVICE_device_list *DEVICE_create_device_list(CSV_file *f) {
         AP_list[i] = MEM_calloc(f->types[APMAC].item_count+1, __func__);
     }
     
+    long evil_AP = (long)KER_hash_find(dl->devices->local_csv->types[APMAC].tbl, "\0", 0);
+    
     for (int i=0; i<f->row_count; i++) {
         CSV_cell *row = &f->data[i*f->column_count];
         
@@ -80,7 +85,8 @@ DEVICE_device_list *DEVICE_create_device_list(CSV_file *f) {
             AP_list[row[MAC].l-1][last_AP[row[MAC].l-1]] = 1;
             encoutered_AP[row[MAC].l-1]++;
         }
-        dl->devices[row[MAC].l-1].logs_count++;
+        if (row[APMAC].l != evil_AP)
+            dl->devices[row[MAC].l-1].logs_count++;
         dl->devices[row[MAC].l-1].uid = row[UID].l;
     }
     
@@ -91,12 +97,18 @@ DEVICE_device_list *DEVICE_create_device_list(CSV_file *f) {
         d->average_changes_per_day = (float)AP_swap[i]/(float)total_days[i];
         d->mac = i;
         
-        if (d->average_AP_per_day > 5 && d->average_changes_per_day > 8)
+        if (d->average_AP_per_day > 5 && d->average_changes_per_day > 8) {
             d->type = MOBILE;
-        else if (d->average_AP_per_day < 5 && d->average_changes_per_day < 8)
+            dl->total_mobile++;
+        }
+        else if (d->average_AP_per_day < 5 && d->average_changes_per_day < 8) {
             d->type = FIXE;
-        else
+            dl->total_fixe++;
+        }
+        else {
             d->type = UNKNOWN;
+            dl->total_unknown++;
+        }
         
         d->local_csv->row_count = d->logs_count;
         d->local_csv->data = MEM_malloc_array(sizeof(CSV_cell), d->local_csv->row_count*d->local_csv->column_count, __func__);
@@ -121,8 +133,11 @@ DEVICE_device_list *DEVICE_create_device_list(CSV_file *f) {
             dl->devices[row[MAC].l-1].start_time = row[TIMESTAMP].l;
         }
         
-        memcpy(&dl->devices[row[MAC].l-1].local_csv->data[index[row[MAC].l-1]*f->column_count], row, f->column_count*sizeof(CSV_cell));
-        index[row[MAC].l-1]++;
+        if (row[APMAC].l != evil_AP) {
+            memcpy(&dl->devices[row[MAC].l-1].local_csv->data[index[row[MAC].l-1]*f->column_count], row, f->column_count*sizeof(CSV_cell));
+            index[row[MAC].l-1]++;
+        
+        }
         
         if (index[row[MAC].l-1] == dl->devices[row[MAC].l-1].logs_count) {
             dl->devices[row[MAC].l-1].end_time = row[TIMESTAMP].l;
@@ -134,6 +149,20 @@ DEVICE_device_list *DEVICE_create_device_list(CSV_file *f) {
 }
 
 float *DEVICE_compute_AP_graph(CSV_file *f) {
+    char *saved_file_name = build_graph_name(f);
+    
+    FILE *fp = fopen(saved_file_name, "wr");
+    
+    MEM_free(saved_file_name);
+    
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    
+    if (size > 0) {
+        return load_graph(fp, (f->types[APMAC].item_count+1)*(f->types[APMAC].item_count+1));
+    }
+    
     long AP_count = f->types[APMAC].item_count+1;
     long *distances = MEM_calloc_array(AP_count*AP_count, sizeof(long), __func__);
     long *counts = MEM_calloc_array(AP_count*AP_count, sizeof(long), __func__);
@@ -187,6 +216,8 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
             }
         }
     }
+    
+    write_graph(fp, dist, AP_count*AP_count);
     
     return dist;
 }
@@ -276,7 +307,7 @@ float DEVICE_proximity(Device *d1, Device *d2, CSV_date start, CSV_date end, DEV
                 
                 current_time = MIN(row_d1[TIMESTAMP].l, end_ts);
                 AP_d1 = row_d1[APMAC].l;
-                if (row_d1[STATUS_TYPE].l == stop_signal || AP_d1 == 2)
+                if (row_d1[STATUS_TYPE].l == stop_signal)
                     AP_d1 = -1;
                 index_d1 ++;
                 if (index_d1 < d1->local_csv->row_count) {
@@ -290,7 +321,7 @@ float DEVICE_proximity(Device *d1, Device *d2, CSV_date start, CSV_date end, DEV
                 
                 current_time = MIN(row_d2[TIMESTAMP].l, end_ts);
                 AP_d2 = row_d2[APMAC].l;
-                if (row_d2[STATUS_TYPE].l == stop_signal || AP_d2 == 2)
+                if (row_d2[STATUS_TYPE].l == stop_signal)
                     AP_d2 = -1;
                 index_d2 ++;
                 if (index_d2 < d2->local_csv->row_count) {
@@ -336,6 +367,44 @@ float DEVICE_proximity(Device *d1, Device *d2, CSV_date start, CSV_date end, DEV
         return INFINITY;
 }
 
+void DEVICE_print_devices_stats(DEVICE_device_list *dl) {
+    printf("Total devices detected : %ld\n", dl->device_count);
+    printf("Total mobiles : %ld\nTotal fixe : %ld\nTotal unknown : %ld\n", dl->total_mobile, dl->total_fixe, dl->total_unknown);
+    printf("Total AP detected : %ld\n", dl->AP_count);
+    printf("   TYPE      LOGS        START          END     UID     MAC\n");
+    
+    for (int i=0; i<dl->device_count; i++) {
+        switch (dl->devices[i].type) {
+            case MOBILE:
+                printf(" MOBILE   ");
+                break;
+                
+            case FIXE:
+                printf("   FIXE   ");
+                break;
+                
+            case UNKNOWN:
+                printf("UNKNOWN   ");
+                break;
+        }
+        
+        printf("%7ld   ", dl->devices[i].logs_count);
+        
+        char buffer[2048];
+        strftime(buffer, 2048, "%F", localtime(&dl->devices[i].start_time));
+        
+        printf("%s   ", buffer);
+        
+        strftime(buffer, 2048, "%F", localtime(&dl->devices[i].end_time));
+        printf("%s   ", buffer);
+        
+        printf("%5ld   ", dl->devices[i].uid);
+        printf("%5d   ", dl->devices[i].mac);
+        
+        printf("\n");
+    }
+}
+
 /* ---------------------------- */
 /*  local functions             */
 /* ---------------------------- */
@@ -358,4 +427,32 @@ long find_floor_index(Device *d, time_t ts) {
     if (row[TIMESTAMP].l > ts)
         return --left;
     return left;
+}
+
+float *load_graph(FILE *fp, long size) {
+    char *buffer = MEM_malloc_array(size, sizeof(float), __func__);
+    
+    fgets(buffer, (int)size*sizeof(float), fp);
+    
+    return (float*)buffer;
+}
+
+void write_graph(FILE *fp, float *graph, long size) {
+    fwrite(graph, sizeof(float), size, fp);
+}
+
+char *build_graph_name(CSV_file *f) {
+    char *saved_file_name = MEM_malloc(strlen(f->file_name)+10, __func__);
+    long index;
+    for (index=strlen(f->file_name)-1; index>=0; index--) {
+        if (f->file_name[index] == '/')
+            break;
+    }
+    
+    memcpy(saved_file_name, f->file_name, index+1);
+    saved_file_name[index+1] = '.';
+    memcpy(&saved_file_name[index+2], &f->file_name[index+1], strlen(f->file_name)-1-index);
+    memcpy(&saved_file_name[strlen(f->file_name)+1], ".graph", strlen(".graph")+1);
+    
+    return saved_file_name;
 }

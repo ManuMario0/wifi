@@ -46,12 +46,14 @@ typedef struct {
 } CSV_cell;
 
 typedef struct {
+    char *      file_name;
+    
     long        row_count, column_count;
     char **     head;
     CSV_cell *  data;
     CSV_type *  types;
 } CSV_file;
 
-extern CSV_file *CSV_parse(FILE *fp, int *flags, int flags_length);
+extern CSV_file *CSV_parse(char file_name[], int *flags, int flags_length);
 
 #endif /* CSV_common_h */

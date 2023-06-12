@@ -57,6 +57,10 @@ typedef struct {
     long device_count;
     long AP_count;
     
+    long total_fixe;
+    long total_mobile;
+    long total_unknown;
+    
     float *AP_graph;
 } DEVICE_device_list;
 
@@ -64,5 +68,6 @@ extern DEVICE_device_list *DEVICE_create_device_list(CSV_file *f);
 extern float *DEVICE_compute_AP_graph(CSV_file *f);
 extern float DEVICE_proximity(Device *d1, Device *d2, CSV_date start, CSV_date end, DEVICE_device_list *dl);
 extern float DEVICE_get_AP_distance(DEVICE_device_list *dl, long AP1, long AP2);
+extern void DEVICE_print_devices_stats(DEVICE_device_list *dl);
 
 #endif /* DEVICE_common_h */
