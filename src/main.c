@@ -10,49 +10,57 @@
 #include "CSV_common.h"
 #include "MEM_alloc.h"
 #include "DEVICE_common.h"
-
-enum {
-    DATE,
-    TIMESTAMP,
-    UID,
-    MAC,
-    STATUS_TYPE,
-    USESSION_ID,
-    SESSION_ID,
-    OCTETS_OUT,
-    PACKETS_OUT,
-    GOS_OUT,
-    PACKETS_IN,
-    OCTETS_IN,
-    GOS_IN,
-    APMAC,
-    UIP_ADDR
-};
+#include "USR_common.h"
 
 int main(void) {
     //MEM_use_secured_allocator();
     
-    FILE *fp = fopen("/Volumes/Emmanuel/stage[DELETE]/wifi_2022-23.csv", "r");
+    FILE *fp = fopen("/Volumes/Emmanuel/stage[DELETE]/fix_database.csv", "r");
     
     int flags[] = {CSV_DATE, CSV_LONG, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_AGGLO};
     
     CSV_file *csv = CSV_parse(fp, flags, sizeof(flags));
     
     Device **devices = MEM_malloc_array(csv->types[MAC].item_count, sizeof(Device*), __func__);
-    int significant_data = 0;
+    long significant_data = 0;
     
-    for (int i=1; i<=csv->types[MAC].item_count; i++) {
-        Device *d = create_device(i, csv);
-        if (d->logs_count > 50) {
-            printf("%d : %f ; %f ; %ld\n", i, d->average_AP_per_day, d->average_changes_per_day, d->logs_count);
-            devices[significant_data] = d;
-            significant_data ++;
-        }
+    DEVICE_device_list *dl = DEVICE_create_device_list(csv);
+    
+    printf("Weird AP : %ld\n", (long)KER_hash_find(dl->devices->local_csv->types[APMAC].tbl, "\0", 0));
+    
+    USR_user_list *ul = USR_create_user_list(dl);
+    
+    for (long i=0; i<ul->user_count; i++) {
+        //printf("User %ld : %ld devices\n", i, ul->users[i].device_count);
+        significant_data += ul->users[i].device_count;
     }
     
-    printf("Retained data : %d\n", significant_data);
+    printf("Total device count : %ld\n", significant_data);
     
     
+    
+    CSV_date start = {0};
+    start.year = 2022;
+    start.month = 11;
+    start.day = 2;
+    
+    CSV_date period_length = {0};
+    period_length.day = 1;
+    
+    CSV_date record_start = {0};
+    record_start.hour = 13;
+    
+    CSV_date record_end = {0};
+    record_end.hour = 14;
+    
+    USR_relation *rel_sept = USR_create_user_relation_graph(ul, dl, start, period_length, DAY, record_start, record_end, MOBILE);
+    
+    for (int i=0; i<ul->user_count; i++) {
+        for (int j=i+1; j<ul->user_count; j++) {
+            if (rel_sept->relation_graph[i*ul->user_count+j] > 0)
+                printf("%d ; %d :: %ld\n", i, j, rel_sept->relation_graph[i*ul->user_count+j]);
+        }
+    }
     
     MEM_print_memstats();
     

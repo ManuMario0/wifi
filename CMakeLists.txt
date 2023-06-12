@@ -14,7 +14,7 @@ file(TO_CMAKE_PATH ${CMAKE_BINARY_DIR} CMAKE_BINARY_DIR)
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER gcc)
 
-project(trading VERSION 0.0.1)
+project(wifi VERSION 0.0.1)
 add_executable(wifi)
 set(CMAKE_BUILD_TYPE Debug)
 
