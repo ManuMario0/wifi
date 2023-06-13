@@ -19,7 +19,7 @@ USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
     
     for (int i=0; i<dl->device_count; i++) {
         Device *d = &dl->devices[i];
-        if (d->logs_count > 50 && d->end_time - d->start_time > 2629743) {
+        if (d->logs_count > 50 /*&& d->end_time - d->start_time > 2629743*/) {
             ul->users[d->uid-1].device_count ++;
             ul->users[d->uid-1].stats[d->type] ++;
         }
@@ -32,7 +32,7 @@ USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
     
     for (int i=0; i<dl->device_count; i++) {
         Device *d = &dl->devices[i];
-        if (d->logs_count > 50 && d->end_time - d->start_time > 2629743) {
+        if (d->logs_count > 50 /*&& d->end_time - d->start_time > 2629743*/) {
             ul->users[d->uid-1].devices[ul->users[d->uid-1].device_count] = d;
             ul->users[d->uid-1].device_count ++;
         }
@@ -88,10 +88,10 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
             end_tm.tm_mday = rlt->start.day + period_length.day;
             
         case MONTH:
-            end_tm.tm_mon = rlt->start.month + period_length.month;
+            end_tm.tm_mon = rlt->start.month + period_length.month - 1;
             
         case YEAR:
-            end_tm.tm_year = rlt->start.year + period_length.year;
+            end_tm.tm_year = rlt->start.year + period_length.year - 1900;
             
         default:
             break;
@@ -101,19 +101,39 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
     
     
     struct tm current_date_tm = {0};
-    current_date_tm.tm_year = rlt->start.year;
-    current_date_tm.tm_mon = rlt->start.month;
+    current_date_tm.tm_year = rlt->start.year - 1900;
+    current_date_tm.tm_mon = rlt->start.month - 1;
     current_date_tm.tm_mday = rlt->start.day;
     current_date_tm.tm_hour = rlt->start.hour;
     current_date_tm.tm_isdst = 1;
     
     time_t current_date = mktime(&current_date_tm);
     
-    memset(&current_date_tm, 0, sizeof(struct tm));
-    current_date_tm.tm_year = rlt->start.year;
-    current_date_tm.tm_mon = rlt->start.month;
-    current_date_tm.tm_mday = rlt->start.day;
-    current_date_tm.tm_hour = rlt->start.hour;
+    time_t record_start_ts = 0;
+    time_t record_end_ts = 0;
+    
+    switch (interval) {
+        case YEAR:
+            record_start_ts += record_start.month*2629743;
+            record_end_ts += record_end.month*2629743;
+            
+        case MONTH:
+            record_start_ts += record_start.day*86400;
+            record_end_ts += record_end.day*86400;
+            
+        case DAY:
+            record_start_ts += record_start.hour*3600;
+            record_end_ts += record_end.hour*3600;
+            
+        case HOUR:
+            record_start_ts += record_start.min*60;
+            record_end_ts += record_end.min*60;
+            record_start_ts += record_start.sec;
+            record_end_ts += record_end.sec;
+            
+        default:
+            break;
+    }
     
     while (current_date < end) {
         for (long k=0; k<ul->user_count; k++) {
@@ -122,44 +142,9 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
                     if (ul->users[k].devices[i]->type & filter) {
                         for (long j=0; j<ul->users[l].device_count; j++) {
                             if (ul->users[l].devices[j]->type & filter) {
-                                CSV_date start_local, end_local;
-                                start_local.year = current_date_tm.tm_year;
-                                start_local.month = current_date_tm.tm_mon;
-                                start_local.day = current_date_tm.tm_mday;
-                                start_local.hour = current_date_tm.tm_hour;
-                                start_local.min = start_local.sec = 0;
+                                float dist = DEVICE_proximity(ul->users[k].devices[i], ul->users[l].devices[j], current_date+record_start_ts, current_date+record_end_ts, dl);
                                 
-                                end_local.year = current_date_tm.tm_year;
-                                end_local.month = current_date_tm.tm_mon;
-                                end_local.day = current_date_tm.tm_mday;
-                                end_local.hour = current_date_tm.tm_hour;
-                                end_local.min = end_local.sec = 0;
-                                switch (interval) {
-                                    case YEAR:
-                                        start_local.month += record_start.month;
-                                        end_local.month += record_end.month;
-                                        
-                                    case MONTH:
-                                        start_local.day += record_start.day;
-                                        end_local.day += record_end.day;
-                                        
-                                    case DAY:
-                                        start_local.hour += record_start.hour;
-                                        end_local.hour += record_end.hour;
-                                        
-                                    case HOUR:
-                                        start_local.min += record_start.min;
-                                        end_local.min += record_end.min;
-                                        start_local.sec += record_start.sec;
-                                        end_local.sec += record_end.sec;
-                                        
-                                    default:
-                                        break;
-                                }
-                                
-                                float dist = DEVICE_proximity(ul->users[k].devices[i], ul->users[l].devices[j], start_local, end_local, dl);
-                                
-                                if (dist < 6.) {
+                                if (dist < .1) {
                                     rlt->relation_graph[ul->users[k].devices[i]->uid * ul->user_count + ul->users[l].devices[j]->uid] ++;
                                     rlt->relation_graph[ul->users[l].devices[j]->uid * ul->user_count + ul->users[k].devices[i]->uid] ++;
                                     i = j = dl->device_count;
@@ -173,22 +158,18 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
         
         switch (interval) {
             case YEAR:
-                current_date_tm.tm_year++;
                 current_date += 31556926;
                 break;
                 
             case MONTH:
-                current_date_tm.tm_mon++;
                 current_date += 2629743;
                 break;
                 
             case DAY:
-                current_date_tm.tm_mday++;
                 current_date += 86400;
                 break;
                 
             case HOUR:
-                current_date_tm.tm_hour++;
                 current_date += 3600;
                 break;
                 
@@ -204,6 +185,6 @@ void USR_print_users_stats(USR_user_list *ul) {
     printf("Total users : %ld\n", ul->user_count);
     printf("DEVICES MOBILE FIXE UNKNOWN   UID\n");
     for (long i=0; i<ul->user_count; i++) {
-        printf("%7ld %6ld %4ld %7ld %5ld\n", ul->users[i].device_count, ul->users[i].stats[MOBILE], ul->users[i].stats[FIXE], ul->users[i].stats[2], i);
+        printf("%7ld %6ld %4ld %7ld %5ld\n", ul->users[i].device_count, ul->users[i].stats[MOBILE], ul->users[i].stats[FIXE], ul->users[i].stats[2], i+1);
     }
 }

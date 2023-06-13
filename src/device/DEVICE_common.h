@@ -44,6 +44,7 @@ typedef struct {
     CSV_file *  local_csv;
     
     long        logs_count;
+    long        skiped_logs;
     
     time_t  start_time;
     time_t  end_time;
@@ -66,8 +67,9 @@ typedef struct {
 
 extern DEVICE_device_list *DEVICE_create_device_list(CSV_file *f);
 extern float *DEVICE_compute_AP_graph(CSV_file *f);
-extern float DEVICE_proximity(Device *d1, Device *d2, CSV_date start, CSV_date end, DEVICE_device_list *dl);
+extern float DEVICE_proximity(Device *d1, Device *d2, time_t start_ts, time_t end_ts, DEVICE_device_list *dl);
 extern float DEVICE_get_AP_distance(DEVICE_device_list *dl, long AP1, long AP2);
 extern void DEVICE_print_devices_stats(DEVICE_device_list *dl);
+extern void DEVICE_store_graph(DEVICE_device_list *dl, char *filename);
 
 #endif /* DEVICE_common_h */

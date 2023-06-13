@@ -23,6 +23,8 @@ int main(void) {
     
     DEVICE_device_list *dl = DEVICE_create_device_list(csv);
     
+    //DEVICE_store_graph(dl, "/Users/emmanuel/Documents/developement/wifi/test.txt");
+    
     DEVICE_print_devices_stats(dl);
     
     USR_user_list *ul = USR_create_user_list(dl);
@@ -41,20 +43,20 @@ int main(void) {
     start.day = 1;
     
     CSV_date period_length = {0};
-    period_length.month = 3;
+    period_length.month = 1;
     
     CSV_date record_start = {0};
-    record_start.hour = 14;
+    record_start.hour = 8;
     
     CSV_date record_end = {0};
-    record_end.hour = 18;
+    record_end.hour = 13;
     
-    USR_relation *rel_sept = USR_create_user_relation_graph(ul, dl, start, period_length, DAY, record_start, record_end, MOBILE|FIXE);
+    USR_relation *rel_sept = USR_create_user_relation_graph(ul, dl, start, period_length, DAY, record_start, record_end, MOBILE);
     
     for (int i=0; i<ul->user_count; i++) {
         for (int j=i+1; j<ul->user_count; j++) {
-            if (rel_sept->relation_graph[i*ul->user_count+j] > 30)
-                printf("%d ; %d :: %ld\n", i, j, rel_sept->relation_graph[i*ul->user_count+j]);
+            if (rel_sept->relation_graph[i*ul->user_count+j] > 15)
+                printf("%d -- %d ;\n", i, j);
         }
     }
     
