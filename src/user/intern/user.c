@@ -19,22 +19,24 @@ USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
     
     for (int i=0; i<dl->device_count; i++) {
         Device *d = &dl->devices[i];
-        if (d->logs_count > 50 /*&& d->end_time - d->start_time > 2629743*/) {
-            ul->users[d->uid-1].device_count ++;
-            ul->users[d->uid-1].stats[d->type] ++;
+        if (d->logs_count > 50 && d->end_time - d->start_time > 2629743) {
+            ul->users[d->uid].device_count ++;
+            ul->users[d->uid].stats[d->type] ++;
         }
     }
     
     for (int i=0; i<ul->user_count; i++) {
         ul->users[i].devices = MEM_malloc_array(ul->users[i].device_count, sizeof(Device*), __func__);
         ul->users[i].device_count = 0;
+        ul->users[i].uid = i;
+        ul->users[i].real_uid = dl->csv->types[UID].reverse_tbl[i];
     }
     
     for (int i=0; i<dl->device_count; i++) {
         Device *d = &dl->devices[i];
-        if (d->logs_count > 50 /*&& d->end_time - d->start_time > 2629743*/) {
-            ul->users[d->uid-1].devices[ul->users[d->uid-1].device_count] = d;
-            ul->users[d->uid-1].device_count ++;
+        if (d->logs_count > 50 && d->end_time - d->start_time > 2629743) {
+            ul->users[d->uid].devices[ul->users[d->uid].device_count] = d;
+            ul->users[d->uid].device_count ++;
         }
     }
     
@@ -144,7 +146,7 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
                             if (ul->users[l].devices[j]->type & filter) {
                                 float dist = DEVICE_proximity(ul->users[k].devices[i], ul->users[l].devices[j], current_date+record_start_ts, current_date+record_end_ts, dl);
                                 
-                                if (dist < .1) {
+                                if (dist < 5.5) {
                                     rlt->relation_graph[ul->users[k].devices[i]->uid * ul->user_count + ul->users[l].devices[j]->uid] ++;
                                     rlt->relation_graph[ul->users[l].devices[j]->uid * ul->user_count + ul->users[k].devices[i]->uid] ++;
                                     i = j = dl->device_count;
@@ -183,8 +185,8 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
 
 void USR_print_users_stats(USR_user_list *ul) {
     printf("Total users : %ld\n", ul->user_count);
-    printf("DEVICES MOBILE FIXE UNKNOWN   UID\n");
+    printf("DEVICES MOBILE FIXE UNKNOWN   UID                                                         REAL-UID\n");
     for (long i=0; i<ul->user_count; i++) {
-        printf("%7ld %6ld %4ld %7ld %5ld\n", ul->users[i].device_count, ul->users[i].stats[MOBILE], ul->users[i].stats[FIXE], ul->users[i].stats[2], i+1);
+        printf("%7ld %6ld %4ld %7ld %5ld %s\n", ul->users[i].device_count, ul->users[i].stats[MOBILE], ul->users[i].stats[FIXE], ul->users[i].stats[UNKNOWN], i, ul->users[i].real_uid);
     }
 }

@@ -6,9 +6,11 @@ set(INC
 
 set(SRC
     intern/user.c
+    intern/schedule.c
 
     USR_common.h
     intern/user.h
+    intern/schedule.h
 )
 
 set(LIB

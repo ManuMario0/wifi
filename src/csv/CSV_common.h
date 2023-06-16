@@ -35,6 +35,7 @@ typedef struct {
     int type;
     long item_count;
     KER_hashTable *tbl;
+    char **reverse_tbl;
 } CSV_type;
 
 typedef struct {
@@ -55,5 +56,7 @@ typedef struct {
 } CSV_file;
 
 extern CSV_file *CSV_parse(char file_name[], int *flags, int flags_length);
+extern CSV_cell *CSV_get_row(CSV_file *f, long row);
+extern char *CSV_reverse_id(CSV_file *f, int row, long id);
 
 #endif /* CSV_common_h */

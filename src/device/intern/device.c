@@ -9,6 +9,7 @@
 #include <limits.h>
 #include <time.h>
 #include <math.h>
+#include <ctype.h>
 
 #include "device.h"
 
@@ -20,22 +21,26 @@
 /*  local functions             */
 /* ---------------------------- */
 
-long find_floor_index(Device *d, time_t ts);
-float *load_graph(FILE *fp, long size);
-void write_graph(FILE *fp, float *graph, long size);
-char *build_graph_name(CSV_file *f);
+static long find_floor_index(Device *d, time_t ts);
+static float *load_graph(FILE *fp, long size);
+static void write_graph(FILE *fp, float *graph, long size);
+static char *build_graph_name(CSV_file *f);
 
 /* ---------------------------- */
 /*  implementation              */
 /* ---------------------------- */
 
-DEVICE_device_list *DEVICE_create_device_list(CSV_file *f) {
+DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
+    int flags[] = {CSV_DATE, CSV_LONG, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_AGGLO};
+    CSV_file *f = CSV_parse(filename, flags, sizeof(flags));
+    
     DEVICE_device_list *dl = MEM_calloc(sizeof(DEVICE_device_list), __func__);
     
     dl->AP_graph = DEVICE_compute_AP_graph(f);
     dl->AP_count = f->types[APMAC].item_count;
     dl->device_count = f->types[MAC].item_count;
     dl->devices = MEM_calloc_array(sizeof(Device), f->types[MAC].item_count, __func__);
+    dl->csv = f;
     
     for (int i=0; i<dl->device_count; i++) {
         Device *d = &dl->devices[i];
@@ -89,7 +94,7 @@ DEVICE_device_list *DEVICE_create_device_list(CSV_file *f) {
             dl->devices[row[MAC].l-1].logs_count++;
         else
             dl->devices[row[MAC].l-1].skiped_logs++;
-        dl->devices[row[MAC].l-1].uid = row[UID].l;
+        dl->devices[row[MAC].l-1].uid = row[UID].l-1;
     }
     
     for (int i=0; i<dl->device_count; i++) {
@@ -169,16 +174,49 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
     long *distances = MEM_calloc_array(AP_count*AP_count, sizeof(long), __func__);
     long *counts = MEM_calloc_array(AP_count*AP_count, sizeof(long), __func__);
     
-    for (int mac=1; mac<=f->types[MAC].item_count; mac++) {
+    int flags[] = {CSV_AGGLO, CSV_SKIP, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP};
+    CSV_file *csv = CSV_parse("/Volumes/Emmanuel/stage[DELETE]/devices.csv", flags, sizeof(flags));
+    
+    for (long mac=1; mac<=f->types[MAC].item_count; mac++) {
         long current_date = LONG_MAX;
         long current_AP = 0;
         for (int i=0; i<f->row_count; i++) {
             CSV_cell *row = &f->data[i*f->column_count];
             
             if (row[MAC].l == mac) {
-                if (current_date - row[TIMESTAMP].l < 3 && row[APMAC].l != current_AP && current_date - row[TIMESTAMP].l>=0) {
+                if (current_date - row[TIMESTAMP].l < 10 && row[APMAC].l != current_AP && current_date - row[TIMESTAMP].l>=0) {
                     distances[row[APMAC].l * AP_count + current_AP] += current_date - row[TIMESTAMP].l;
                     counts[row[APMAC].l * AP_count + current_AP] += 1;
+                    
+                    char buffer[18];
+                    char *mac_addr = f->types[APMAC].reverse_tbl[current_AP-1];
+                    buffer[0] = mac_addr[0];
+                    buffer[1] = mac_addr[1];
+                    for (int i=1; i<=5; i++) {
+                        buffer[3*i-1] = ':';
+                        buffer[3*i] = mac_addr[2*i];
+                        buffer[3*i+1] = mac_addr[2*i+1];
+                    }
+                    buffer[17] =  '\0';
+                    char *ptr = buffer;
+                    for ( ; *ptr; ptr++) *ptr = tolower(*ptr);
+                    char *rrrrrrr = csv->types[2].reverse_tbl[csv->data[((long)KER_hash_find(csv->types[1].tbl, buffer, strlen(buffer))-1)*csv->column_count+2].l-1];
+                    
+                    mac_addr = f->types[APMAC].reverse_tbl[row[APMAC].l-1];
+                    buffer[0] = mac_addr[0];
+                    buffer[1] = mac_addr[1];
+                    for (int i=1; i<=5; i++) {
+                        buffer[3*i-1] = ':';
+                        buffer[3*i] = mac_addr[2*i];
+                        buffer[3*i+1] = mac_addr[2*i+1];
+                    }
+                    buffer[17] =  '\0';
+                    ptr = buffer;
+                    for ( ; *ptr; ptr++) *ptr = tolower(*ptr);
+                    char *ssssssss = csv->types[2].reverse_tbl[csv->data[((long)KER_hash_find(csv->types[1].tbl, buffer, strlen(buffer))-1)*csv->column_count+2].l-1];
+                    
+                    if (rrrrrrr && ssssssss && rrrrrrr[0] != ssssssss[0] && ssssssss[0] != 'U' && rrrrrrr[0] != 'U')
+                        printf("%s : %s\n", rrrrrrr, ssssssss);
                     
                     distances[row[APMAC].l + AP_count * current_AP]
                                     = distances[row[APMAC].l * AP_count + current_AP];
@@ -187,6 +225,30 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
                 }
                 current_date = row[TIMESTAMP].l;
                 current_AP = row[APMAC].l;
+                
+                char buffer[18];
+                char *mac_addr = f->types[APMAC].reverse_tbl[current_AP-1];
+                if (mac_addr[0] != '\0') {
+                    buffer[0] = mac_addr[0];
+                    buffer[1] = mac_addr[1];
+                    for (int i=1; i<=5; i++) {
+                        buffer[3*i-1] = ':';
+                        buffer[3*i] = mac_addr[2*i];
+                        buffer[3*i+1] = mac_addr[2*i+1];
+                    }
+                    buffer[17] =  '\0';
+                    char *ptr = buffer;
+                    for ( ; *ptr; ptr++) *ptr = tolower(*ptr);
+                    
+                    
+                    long truc = (long)KER_hash_find(csv->types[1].tbl, buffer, strlen(buffer));
+                    if (truc > 0) {
+                        char *rrrrrrr = csv->types[0].reverse_tbl[csv->data[(truc-1)*csv->column_count].l-1];
+                        
+                        if (rrrrrrr && strstr(rrrrrrr, "B041C"))
+                            printf("%ld\n", mac-1);
+                    }
+                }
             }
         }
     }
@@ -194,7 +256,7 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
     float *dist = MEM_calloc_array(AP_count*AP_count, sizeof(float), __func__);
     for (int i=1; i<=f->types[APMAC].item_count; i++) {
         for (int j=1; j<=f->types[APMAC].item_count; j++) {
-            if (counts[i * AP_count + j] != 0) {
+            if (counts[i * AP_count + j] > 30) {
                 dist[i * AP_count + j]
                         = (float)distances[i * AP_count + j] / (float)counts[i * AP_count + j];
             } else {
@@ -230,7 +292,6 @@ float DEVICE_get_AP_distance(DEVICE_device_list *dl, long AP1, long AP2) {
     return dl->AP_graph[AP1 * (dl->AP_count+1) + AP2];
 }
 
-// later, we need the ap proximity graph
 float DEVICE_proximity(Device *d1, Device *d2, time_t start_ts, time_t end_ts, DEVICE_device_list *dl) {
     long stop_signal = (long)KER_hash_find(d1->local_csv->types[STATUS_TYPE].tbl, "Stop", 4);
     
@@ -342,7 +403,7 @@ float DEVICE_proximity(Device *d1, Device *d2, time_t start_ts, time_t end_ts, D
         }
     }
     
-    if (total_time != 0/* && total_time > 3*(float)(end_ts-start_ts)/10.*/)
+    if (total_time != 0)
         return distance/(float)total_time;
     else
         return INFINITY;
@@ -352,7 +413,7 @@ void DEVICE_print_devices_stats(DEVICE_device_list *dl) {
     printf("Total devices detected : %ld\n", dl->device_count);
     printf("Total mobiles : %ld\nTotal fixe : %ld\nTotal unknown : %ld\n", dl->total_mobile, dl->total_fixe, dl->total_unknown);
     printf("Total AP detected : %ld\n", dl->AP_count);
-    printf("   TYPE      LOGS   SKIPED        START          END     UID     MAC\n");
+    printf("   TYPE      LOGS   SKIPED        START          END     UID     MAC                                                        REAL-MAC\n");
     
     for (int i=0; i<dl->device_count; i++) {
         switch (dl->devices[i].type) {
@@ -382,7 +443,8 @@ void DEVICE_print_devices_stats(DEVICE_device_list *dl) {
         printf("%s   ", buffer);
         
         printf("%5ld   ", dl->devices[i].uid);
-        printf("%5d", dl->devices[i].mac);
+        printf("%5d   ", dl->devices[i].mac);
+        printf("%s", CSV_reverse_id(dl->csv, MAC, dl->devices[i].mac+1));
         
         printf("\n");
     }
@@ -406,6 +468,11 @@ void DEVICE_store_graph(DEVICE_device_list *dl, char *filename) {
     }
 }
 
+// TODO: add bound checking when in debug mode
+inline CSV_cell *DEVICE_get_row(Device *d, long index) {
+    return CSV_get_row(d->local_csv, index);
+}
+
 /* ---------------------------- */
 /*  local functions             */
 /* ---------------------------- */
@@ -417,14 +484,14 @@ long find_floor_index(Device *d, time_t ts) {
     
     while (left < right) {
         long m = (right+left+1)/2;
-        row = &d->local_csv->data[m*d->local_csv->column_count];
+        row =  DEVICE_get_row(d, m);
         if (row[TIMESTAMP].l < ts)
             left = m;
         else
             right = m-1;
     }
     
-    row = &d->local_csv->data[left*d->local_csv->column_count];
+    row = DEVICE_get_row(d, left);
     if (row[TIMESTAMP].l > ts)
         return --left;
     return left;
@@ -433,7 +500,7 @@ long find_floor_index(Device *d, time_t ts) {
 float *load_graph(FILE *fp, long size) {
     char *buffer = MEM_malloc_array(size, sizeof(float), __func__);
     
-    fgets(buffer, (int)size*sizeof(float), fp);
+    fread(buffer, sizeof(float), size, fp);
     
     return (float*)buffer;
 }

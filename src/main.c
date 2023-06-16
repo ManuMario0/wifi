@@ -15,15 +15,12 @@
 int main(void) {
     //MEM_use_secured_allocator();
     
-    int flags[] = {CSV_DATE, CSV_LONG, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_AGGLO};
-    
-    CSV_file *csv = CSV_parse("/Volumes/Emmanuel/stage[DELETE]/fix_database.csv", flags, sizeof(flags));
-    
     long significant_data = 0;
     
-    DEVICE_device_list *dl = DEVICE_create_device_list(csv);
+    DEVICE_ap_list *apl = DEVICE_acquire_access_points("/Volumes/Emmanuel/stage[DELETE]/devices.csv");
+    DEVICE_device_list *dl = DEVICE_create_device_list("/Volumes/Emmanuel/stage[DELETE]/fix_database.csv");
     
-    //DEVICE_store_graph(dl, "/Users/emmanuel/Documents/developement/wifi/test.txt");
+    DEVICE_store_graph(dl, "/Users/emmanuel/Documents/developement/wifi/test.txt");
     
     DEVICE_print_devices_stats(dl);
     
@@ -36,17 +33,16 @@ int main(void) {
     
     printf("Total device count : %ld / %ld\n", significant_data, dl->device_count);
     
-    
     CSV_date start = {0};
     start.year = 2023;
     start.month = 1;
     start.day = 1;
     
     CSV_date period_length = {0};
-    period_length.month = 1;
+    period_length.month = 4;
     
     CSV_date record_start = {0};
-    record_start.hour = 8;
+    record_start.hour = 9;
     
     CSV_date record_end = {0};
     record_end.hour = 13;
@@ -55,10 +51,17 @@ int main(void) {
     
     for (int i=0; i<ul->user_count; i++) {
         for (int j=i+1; j<ul->user_count; j++) {
-            if (rel_sept->relation_graph[i*ul->user_count+j] > 15)
-                printf("%d -- %d ;\n", i, j);
+            if (rel_sept->relation_graph[i*ul->user_count+j] > 1)
+                printf("%d -- %d [len=%f] ;\n", i, j, 30./(float)rel_sept->relation_graph[i*ul->user_count+j]);
         }
     }
+    
+    USR_schedule *schedule = USR_get_user_schedule(dl, &ul->users[10]);
+    USR_print_schedule(schedule);
+    printf("\n\n\n\n");
+    
+    schedule = USR_get_user_schedule(dl, &ul->users[14]);
+    USR_print_schedule(schedule);
     
     MEM_print_memstats();
     

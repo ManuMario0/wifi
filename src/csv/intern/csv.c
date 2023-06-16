@@ -16,7 +16,8 @@
 /*  local functions             */
 /* ---------------------------- */
 
-long acquire_raw_cell(char *current_line, long pos, char buffer[]);
+static long acquire_raw_cell(char *current_line, long pos, char buffer[]);
+static char **add_item(char **memory, size_t mem_size, char *key);
 
 /* ---------------------------- */
 /*  implementation              */
@@ -74,7 +75,7 @@ CSV_file *CSV_parse(char file_name[], int *flags, int flags_length) {
     }
     
     f->head = MEM_malloc_array(sizeof(char*), f->column_count, __func__);
-    f->types = MEM_malloc_array(sizeof(CSV_type), f->column_count, __func__);
+    f->types = MEM_calloc_array(sizeof(CSV_type), f->column_count, __func__);
     fseek(fp, 0, SEEK_SET);
     
     long index = 0;
@@ -132,6 +133,7 @@ CSV_file *CSV_parse(char file_name[], int *flags, int flags_length) {
                     
                 case CSV_AGGLO:
                     if (!KER_hash_find(f->types[index].tbl, buff, (int)strlen(buff))) {
+                        f->types[index].reverse_tbl  = add_item(f->types[index].reverse_tbl, f->types[index].item_count, buff);
                         f->types[index].item_count++;
                         KER_hash_add(f->types[index].tbl, buff, (int)strlen(buff), (void*)f->types[index].item_count);
                     }
@@ -156,21 +158,54 @@ CSV_file *CSV_parse(char file_name[], int *flags, int flags_length) {
     return f;
 }
 
+CSV_cell *CSV_get_row(CSV_file *f, long row) {
+    return &f->data[row*f->column_count];
+}
+
+char *CSV_reverse_id(CSV_file *f, int row, long id) {
+    return f->types[row].reverse_tbl[id-1];
+}
+
 /* ---------------------------- */
 /*  local functions             */
 /* ---------------------------- */
 
 long acquire_raw_cell(char *current_line, long pos, char buffer[]) {
     long length = 0;
-    while (current_line[pos] != ',' && current_line[pos] != '\0' && length < 2047) {
-        buffer[length] = current_line[pos];
-        length++;
+    if (current_line[pos] != '\"') {
+        while (current_line[pos] != ',' && current_line[pos] != '\0' && length < 2047) {
+            buffer[length] = current_line[pos];
+            length++;
+            pos++;
+        }
+        if (current_line[pos] != ',' && current_line[pos] != '\0') {
+            while (current_line[pos] != ',' && current_line[pos] != '\0') {pos++;}
+        }
+        buffer[length] = '\0';
+    } else {
         pos++;
+        while (current_line[pos] != '\"' && length < 2047) {
+            buffer[length] = current_line[pos];
+            length++;
+            pos++;
+        }
+        if (current_line[pos] != '\"') {
+            while (current_line[pos] != ',' && current_line[pos] != '\0') {pos++;}
+        }
+        pos++;
+        buffer[length] = '\0';
     }
-    if (current_line[pos] != ',' && current_line[pos] != '\0') {
-        while (current_line[pos] != ',' && current_line[pos] != '\0') {pos++;}
-    }
-    buffer[length] = '\0';
     
     return ++pos;
+}
+
+char **add_item(char **memory, size_t mem_size, char *key) {
+    mem_size ++;
+    if (memory)
+        memory = MEM_realloc(memory, mem_size*sizeof(char*));
+    else
+        memory = MEM_malloc(sizeof(char*), __func__);
+    memory[mem_size-1] = strdup(key);
+    
+    return memory;
 }
