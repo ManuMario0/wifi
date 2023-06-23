@@ -18,6 +18,7 @@ DEVICE_ap_list *DEVICE_acquire_access_points(char filename[]) {
     DEVICE_ap_list *apl = MEM_calloc(sizeof(DEVICE_ap_list), __func__);
     
     apl->ap_count = f->row_count;
+    apl->mac_addr = f->types[AP_MAC].tbl;
     apl->ap = MEM_calloc_array(sizeof(DEVICE_ap), apl->ap_count, __func__);
     
     for (long i=0; i<apl->ap_count; i++) {
@@ -30,18 +31,22 @@ DEVICE_ap_list *DEVICE_acquire_access_points(char filename[]) {
         switch (apl->ap[i].name[0]) {
             case 'M':
                 apl->ap[i].location = MADRID;
+                apl->stats[MADRID]++;
                 break;
                 
             case 'A':
                 apl->ap[i].location = GETAFE;
+                apl->stats[GETAFE]++;
                 break;
                 
             case 'B':
                 apl->ap[i].location = LEGANES;
+                apl->stats[LEGANES]++;
                 break;
                 
             case 'C':
                 apl->ap[i].location = COLMERAJERO;
+                apl->stats[COLMERAJERO]++;
                 break;
                 
             default:
@@ -50,4 +55,12 @@ DEVICE_ap_list *DEVICE_acquire_access_points(char filename[]) {
     }
     
     return apl;
+}
+
+void DEVICE_print_ap_stats(DEVICE_ap_list *apl) {
+    printf("Total AP : %ld\n", apl->ap_count);
+    printf("Total AP at Madrid : %ld\n", apl->stats[MADRID]);
+    printf("Total AP at Getafe : %ld\n", apl->stats[GETAFE]);
+    printf("Total AP at Leganes : %ld\n", apl->stats[LEGANES]);
+    printf("Total AP at Colmerajero : %ld\n", apl->stats[COLMERAJERO]);
 }

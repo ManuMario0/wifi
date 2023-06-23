@@ -17,7 +17,7 @@
 /* ---------------------------- */
 
 static long acquire_raw_cell(char *current_line, long pos, char buffer[]);
-static char **add_item(char **memory, size_t mem_size, char *key);
+static char **add_item(char **memory, size_t load, size_t *_mem_size, char *key);
 
 /* ---------------------------- */
 /*  implementation              */
@@ -89,7 +89,7 @@ CSV_file *CSV_parse(char file_name[], int *flags, int flags_length) {
             memcpy(f->head[index], buff, strlen(buff)+1);
             f->types[index].type = flags[i];
             if (flags[i] == CSV_AGGLO) {
-                f->types[index].tbl = KER_hash_create_table(2048);
+                f->types[index].tbl = KER_hash_create_table(8192);
                 f->types[index].item_count = 0;
             }
             index++;
@@ -98,6 +98,12 @@ CSV_file *CSV_parse(char file_name[], int *flags, int flags_length) {
         }
     }
     
+    size_t *reverse_tbl_size = MEM_calloc_array(sizeof(size_t), f->column_count, __func__);
+    long *reverse_tbl_load = MEM_calloc_array(sizeof(long), f->column_count, __func__);
+    for (long i=0; i<f->column_count; i++) {
+        reverse_tbl_size[i] = 64;
+        f->types[i].reverse_tbl = MEM_calloc_array(sizeof(char *), 64, __func__);
+    }
     f->data = MEM_malloc_array(sizeof(CSV_cell), f->column_count*f->row_count, __func__);
     for (int i=0; i<f->row_count; i++) {
         fgets(current_line, 4096, fp);
@@ -133,7 +139,7 @@ CSV_file *CSV_parse(char file_name[], int *flags, int flags_length) {
                     
                 case CSV_AGGLO:
                     if (!KER_hash_find(f->types[index].tbl, buff, (int)strlen(buff))) {
-                        f->types[index].reverse_tbl  = add_item(f->types[index].reverse_tbl, f->types[index].item_count, buff);
+                        f->types[index].reverse_tbl = add_item(f->types[index].reverse_tbl, f->types[index].item_count, &reverse_tbl_size[index], buff);
                         f->types[index].item_count++;
                         KER_hash_add(f->types[index].tbl, buff, (int)strlen(buff), (void*)f->types[index].item_count);
                     }
@@ -162,8 +168,8 @@ CSV_cell *CSV_get_row(CSV_file *f, long row) {
     return &f->data[row*f->column_count];
 }
 
-char *CSV_reverse_id(CSV_file *f, int row, long id) {
-    return f->types[row].reverse_tbl[id-1];
+char *CSV_reverse_id(CSV_file *f, long column, long uid) {
+    return f->types[column].reverse_tbl[uid-1];
 }
 
 /* ---------------------------- */
@@ -199,13 +205,17 @@ long acquire_raw_cell(char *current_line, long pos, char buffer[]) {
     return ++pos;
 }
 
-char **add_item(char **memory, size_t mem_size, char *key) {
-    mem_size ++;
-    if (memory)
-        memory = MEM_realloc(memory, mem_size*sizeof(char*));
-    else
-        memory = MEM_malloc(sizeof(char*), __func__);
-    memory[mem_size-1] = strdup(key);
+char **add_item(char **memory, size_t load, size_t *_mem_size, char *key) {
+    size_t mem_size = *_mem_size;
+    load++;
+    if (load > mem_size) {
+        mem_size *= 2;
+        memory = MEM_realloc(memory, mem_size*sizeof(char *));
+    }
+    memory[load-1] = MEM_malloc(strlen(key)+1, __func__);
+    memcpy(memory[load-1], key, strlen(key)+1);
+    
+    *_mem_size = mem_size;
     
     return memory;
 }

@@ -15,6 +15,7 @@ set(SRC
 set(LIB
     mem_alloc
     kernel
+    csv
 )
 
 add_module(device "${SRC}" "${INC}" "${LIB}")

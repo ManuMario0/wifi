@@ -356,3 +356,84 @@ Speed *compute_speeds(DEVICE_device_list *dl, USR_user *usr) {
  - check with ground truth whenever possible
  
  */
+
+
+
+float *compute_device_speed(DEVICE_device_list *dl, Device *d) {
+    float *speeds = MEM_calloc_array(sizeof(float), d->logs_count-1, __func__);
+    
+    for (long i=0; i<d->logs_count-1; i++) {
+        CSV_cell *row1 = CSV_get_row(d->local_csv, i);
+        CSV_cell *row2 = CSV_get_row(d->local_csv, i+1);
+        speeds[i] = DEVICE_get_AP_distance(dl, row1[APMAC].l, row2[APMAC].l)*(row2[TIMESTAMP].l-row1[TIMESTAMP].l);
+    }
+    
+    return speeds;
+}
+
+
+USR_event *get_next_event(Device *d, float *speeds, long *_current_index, long end) {
+    USR_event *e = MEM_calloc(sizeof(USR_event), __func__);
+    long current_index = *_current_index;
+    
+    CSV_cell *row = CSV_get_row(d->local_csv, current_index);
+    e->start = row[TIMESTAMP].l;
+    if (speeds[current_index] > SPEED_THRESHOLD) {
+        // moving
+        e->type = MOVING;
+        while (current_index < end-1 && speeds[current_index] > CORRECTED_SPEED_THRESHOLD) {
+            current_index++;
+        }
+    } else {
+        // not moving
+        e->type = STOP;
+        while (current_index < end-1 && (speeds[current_index] < SPEED_THRESHOLD || speeds[current_index+1] < SPEED_THRESHOLD)) {
+            current_index++;
+        }
+    }
+    
+    row = CSV_get_row(d->local_csv, current_index);
+    e->end = row[TIMESTAMP].l;
+    
+    *_current_index = current_index;
+    
+    return e;
+}
+
+USR_schedule *USR_produce_device_schedule(DEVICE_device_list *dl, Device *d) {
+    USR_schedule *schedule = MEM_calloc(sizeof(USR_schedule), __func__);
+    
+    float *speeds = compute_device_speed(dl, d);
+    
+    long current_index = 0;
+    while (current_index < d->logs_count-1) {
+        USR_event *e = get_next_event(d, speeds, &current_index, d->logs_count);
+        schedule->event_count++;
+        schedule->uid = d->mac;
+        
+        if (schedule->events) {
+            e->next = schedule->events;
+            e->prev = schedule->events->prev;
+            schedule->events->prev->next = e;
+            schedule->events->prev = e;
+        } else {
+            schedule->events = e;
+            e->next = e;
+            e->prev = e;
+        }
+    }
+    
+    MEM_free(speeds);
+    
+    return schedule;
+}
+
+void USR_destroy_schedule(USR_schedule *schedule) {
+    USR_event *e = schedule->events;
+    do {
+        USR_event *tmp = e;
+        e = e->next;
+        MEM_free(tmp);
+    } while (e != schedule->events);
+    MEM_free(schedule);
+}

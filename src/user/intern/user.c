@@ -12,6 +12,10 @@
 
 #include "MEM_alloc.h"
 
+/* ---------------------------- */
+/*  implementation              */
+/* ---------------------------- */
+
 USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
     USR_user_list *ul = MEM_malloc(sizeof(USR_user_list), __func__);
     ul->user_count = dl->devices->local_csv->types[UID].item_count;
@@ -19,7 +23,7 @@ USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
     
     for (int i=0; i<dl->device_count; i++) {
         Device *d = &dl->devices[i];
-        if (d->logs_count > 50 && d->end_time - d->start_time > 2629743) {
+        if (d->logs_count > 50 && d->end_time - d->start_time > 604800) {
             ul->users[d->uid].device_count ++;
             ul->users[d->uid].stats[d->type] ++;
         }
@@ -34,7 +38,7 @@ USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
     
     for (int i=0; i<dl->device_count; i++) {
         Device *d = &dl->devices[i];
-        if (d->logs_count > 50 && d->end_time - d->start_time > 2629743) {
+        if (d->logs_count > 50 && d->end_time - d->start_time > 604800) {
             ul->users[d->uid].devices[ul->users[d->uid].device_count] = d;
             ul->users[d->uid].device_count ++;
         }
@@ -187,6 +191,6 @@ void USR_print_users_stats(USR_user_list *ul) {
     printf("Total users : %ld\n", ul->user_count);
     printf("DEVICES MOBILE FIXE UNKNOWN   UID                                                         REAL-UID\n");
     for (long i=0; i<ul->user_count; i++) {
-        printf("%7ld %6ld %4ld %7ld %5ld %s\n", ul->users[i].device_count, ul->users[i].stats[MOBILE], ul->users[i].stats[FIXE], ul->users[i].stats[UNKNOWN], i, ul->users[i].real_uid);
+        printf("%7ld %6ld %4ld %7ld %5ld %s\n", ul->users[i].device_count, ul->users[i].stats[MOBILE], ul->users[i].stats[STATIC], ul->users[i].stats[UNKNOWN], i, ul->users[i].real_uid);
     }
 }

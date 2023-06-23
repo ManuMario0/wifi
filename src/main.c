@@ -17,7 +17,7 @@ int main(void) {
     
     long significant_data = 0;
     
-    DEVICE_ap_list *apl = DEVICE_acquire_access_points("/Volumes/Emmanuel/stage[DELETE]/devices.csv");
+    DEVICE_ap_list *apl = DEVICE_acquire_access_points("/Volumes/Emmanuel/stage[DELETE]/fix_devices.csv");
     DEVICE_device_list *dl = DEVICE_create_device_list("/Volumes/Emmanuel/stage[DELETE]/fix_database.csv");
     
     DEVICE_store_graph(dl, "/Users/emmanuel/Documents/developement/wifi/test.txt");
@@ -57,11 +57,16 @@ int main(void) {
     }
     
     USR_schedule *schedule = USR_get_user_schedule(dl, &ul->users[10]);
-    USR_print_schedule(schedule);
-    printf("\n\n\n\n");
+    //USR_print_schedule(schedule);
+    //printf("\n\n\n\n");
     
-    schedule = USR_get_user_schedule(dl, &ul->users[14]);
-    USR_print_schedule(schedule);
+    //schedule = USR_get_user_schedule(dl, &ul->users[14]);
+    //USR_print_schedule(schedule);
+    
+    DEVICE_print_ap_stats(apl);
+    
+    USR_export_user_data(dl, apl, &ul->users[3], "/Users/emmanuel/Documents/developement/wifi/");
+    USR_export_global_data(dl, apl, "/Users/emmanuel/Documents/developement/wifi/");
     
     MEM_print_memstats();
     

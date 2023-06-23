@@ -74,4 +74,11 @@ typedef struct {
 extern USR_schedule *USR_get_user_schedule(DEVICE_device_list *dl, USR_user *usr);
 extern void USR_print_schedule(USR_schedule *schedule);
 
+
+extern void USR_export_user_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, USR_user *usr, char dir[]);
+
+extern USR_schedule *USR_produce_device_schedule(DEVICE_device_list *dl, Device *d);
+extern void USR_destroy_schedule(USR_schedule *schedule);
+extern void USR_export_global_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, char dir[]);
+
 #endif /* USR_common_h */

@@ -109,7 +109,7 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
             dl->total_mobile++;
         }
         else if (d->average_AP_per_day < 5 && d->average_changes_per_day < 8) {
-            d->type = FIXE;
+            d->type = STATIC;
             dl->total_fixe++;
         }
         else {
@@ -119,6 +119,9 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
         
         d->local_csv->row_count = d->logs_count;
         d->local_csv->data = MEM_malloc_array(sizeof(CSV_cell), d->local_csv->row_count*d->local_csv->column_count, __func__);
+        
+        if (d->logs_count != 0)
+            dl->effective_device_count++;
     }
     
     MEM_free(current_date);
@@ -174,9 +177,6 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
     long *distances = MEM_calloc_array(AP_count*AP_count, sizeof(long), __func__);
     long *counts = MEM_calloc_array(AP_count*AP_count, sizeof(long), __func__);
     
-    int flags[] = {CSV_AGGLO, CSV_SKIP, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP, CSV_SKIP};
-    CSV_file *csv = CSV_parse("/Volumes/Emmanuel/stage[DELETE]/devices.csv", flags, sizeof(flags));
-    
     for (long mac=1; mac<=f->types[MAC].item_count; mac++) {
         long current_date = LONG_MAX;
         long current_AP = 0;
@@ -188,36 +188,6 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
                     distances[row[APMAC].l * AP_count + current_AP] += current_date - row[TIMESTAMP].l;
                     counts[row[APMAC].l * AP_count + current_AP] += 1;
                     
-                    char buffer[18];
-                    char *mac_addr = f->types[APMAC].reverse_tbl[current_AP-1];
-                    buffer[0] = mac_addr[0];
-                    buffer[1] = mac_addr[1];
-                    for (int i=1; i<=5; i++) {
-                        buffer[3*i-1] = ':';
-                        buffer[3*i] = mac_addr[2*i];
-                        buffer[3*i+1] = mac_addr[2*i+1];
-                    }
-                    buffer[17] =  '\0';
-                    char *ptr = buffer;
-                    for ( ; *ptr; ptr++) *ptr = tolower(*ptr);
-                    char *rrrrrrr = csv->types[2].reverse_tbl[csv->data[((long)KER_hash_find(csv->types[1].tbl, buffer, strlen(buffer))-1)*csv->column_count+2].l-1];
-                    
-                    mac_addr = f->types[APMAC].reverse_tbl[row[APMAC].l-1];
-                    buffer[0] = mac_addr[0];
-                    buffer[1] = mac_addr[1];
-                    for (int i=1; i<=5; i++) {
-                        buffer[3*i-1] = ':';
-                        buffer[3*i] = mac_addr[2*i];
-                        buffer[3*i+1] = mac_addr[2*i+1];
-                    }
-                    buffer[17] =  '\0';
-                    ptr = buffer;
-                    for ( ; *ptr; ptr++) *ptr = tolower(*ptr);
-                    char *ssssssss = csv->types[2].reverse_tbl[csv->data[((long)KER_hash_find(csv->types[1].tbl, buffer, strlen(buffer))-1)*csv->column_count+2].l-1];
-                    
-                    if (rrrrrrr && ssssssss && rrrrrrr[0] != ssssssss[0] && ssssssss[0] != 'U' && rrrrrrr[0] != 'U')
-                        printf("%s : %s\n", rrrrrrr, ssssssss);
-                    
                     distances[row[APMAC].l + AP_count * current_AP]
                                     = distances[row[APMAC].l * AP_count + current_AP];
                     counts[row[APMAC].l + AP_count * current_AP]
@@ -225,30 +195,6 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
                 }
                 current_date = row[TIMESTAMP].l;
                 current_AP = row[APMAC].l;
-                
-                char buffer[18];
-                char *mac_addr = f->types[APMAC].reverse_tbl[current_AP-1];
-                if (mac_addr[0] != '\0') {
-                    buffer[0] = mac_addr[0];
-                    buffer[1] = mac_addr[1];
-                    for (int i=1; i<=5; i++) {
-                        buffer[3*i-1] = ':';
-                        buffer[3*i] = mac_addr[2*i];
-                        buffer[3*i+1] = mac_addr[2*i+1];
-                    }
-                    buffer[17] =  '\0';
-                    char *ptr = buffer;
-                    for ( ; *ptr; ptr++) *ptr = tolower(*ptr);
-                    
-                    
-                    long truc = (long)KER_hash_find(csv->types[1].tbl, buffer, strlen(buffer));
-                    if (truc > 0) {
-                        char *rrrrrrr = csv->types[0].reverse_tbl[csv->data[(truc-1)*csv->column_count].l-1];
-                        
-                        if (rrrrrrr && strstr(rrrrrrr, "B041C"))
-                            printf("%ld\n", mac-1);
-                    }
-                }
             }
         }
     }
@@ -421,8 +367,8 @@ void DEVICE_print_devices_stats(DEVICE_device_list *dl) {
                 printf(" MOBILE   ");
                 break;
                 
-            case FIXE:
-                printf("   FIXE   ");
+            case STATIC:
+                printf(" STATIC   ");
                 break;
                 
             case UNKNOWN:

@@ -12,6 +12,25 @@
 
 #include "CSV_common.h"
 
+typedef struct {
+    long        apid;
+    char *      mac;
+    int         location;
+    char *      name;
+    char *      map_location;
+} DEVICE_ap;
+
+typedef struct {
+    long        ap_count;
+    DEVICE_ap * ap;
+    KER_hashTable *mac_addr;
+    
+    long        stats[5];
+} DEVICE_ap_list;
+
+extern DEVICE_ap_list *DEVICE_acquire_access_points(char filename[]);
+extern void DEVICE_print_ap_stats(DEVICE_ap_list *apl);
+
 enum {
     DATE,
     TIMESTAMP,
@@ -32,7 +51,7 @@ enum {
 
 enum {
     MOBILE = 0x1,
-    FIXE = 0x2,
+    STATIC = 0x2,
     UNKNOWN = 0x4
 };
 
@@ -56,6 +75,7 @@ typedef struct {
 typedef struct {
     Device *devices;
     long device_count;
+    long effective_device_count;
     long AP_count;
     
     CSV_file *csv;
@@ -74,20 +94,5 @@ extern float DEVICE_get_AP_distance(DEVICE_device_list *dl, long AP1, long AP2);
 extern void DEVICE_print_devices_stats(DEVICE_device_list *dl);
 extern void DEVICE_store_graph(DEVICE_device_list *dl, char *filename);
 extern CSV_cell *DEVICE_get_row(Device *d, long index);
-
-typedef struct {
-    long        apid;
-    char *      mac;
-    int         location;
-    char *      name;
-    char *      map_location;
-} DEVICE_ap;
-
-typedef struct {
-    long        ap_count;
-    DEVICE_ap * ap;
-} DEVICE_ap_list;
-
-extern DEVICE_ap_list *DEVICE_acquire_access_points(char filename[]);
 
 #endif /* DEVICE_common_h */
