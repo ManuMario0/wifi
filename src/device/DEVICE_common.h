@@ -59,6 +59,7 @@ typedef struct {
     int         mac;
     int         type;
     long        uid;
+    char *      real_mac;
     
     CSV_file *  local_csv;
     

@@ -103,6 +103,7 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
         d->average_AP_per_day = (float)encoutered_AP[i]/(float)total_days[i];
         d->average_changes_per_day = (float)AP_swap[i]/(float)total_days[i];
         d->mac = i;
+        d->real_mac = CSV_reverse_id(d->local_csv, MAC, i+1);
         
         if (d->average_AP_per_day > 5 && d->average_changes_per_day > 8) {
             d->type = MOBILE;
@@ -390,7 +391,7 @@ void DEVICE_print_devices_stats(DEVICE_device_list *dl) {
         
         printf("%5ld   ", dl->devices[i].uid);
         printf("%5d   ", dl->devices[i].mac);
-        printf("%s", CSV_reverse_id(dl->csv, MAC, dl->devices[i].mac+1));
+        printf("%s", dl->devices[i].real_mac);
         
         printf("\n");
     }
