@@ -20,7 +20,7 @@ enum {
     MADRID,
     GETAFE,
     LEGANES,
-    COLMERAJERO
+    COLMENAJERO
 };
 
 #endif /* access_point_h */

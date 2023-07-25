@@ -21,7 +21,7 @@
 /*  local functions             */
 /* ---------------------------- */
 
-static long find_floor_index(Device *d, time_t ts);
+static long find_floor_index(DEV_device *d, time_t ts);
 static float *load_graph(FILE *fp, long size);
 static void write_graph(FILE *fp, float *graph, long size);
 static char *build_graph_name(CSV_file *f);
@@ -30,20 +30,20 @@ static char *build_graph_name(CSV_file *f);
 /*  implementation              */
 /* ---------------------------- */
 
-DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
+DEV_device_list *DEV_create_device_list(char filename[]) {
     int flags[] = {CSV_DATE, CSV_LONG, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_AGGLO, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_LONG, CSV_AGGLO, CSV_SKIP, CSV_SKIP, CSV_AGGLO};
     CSV_file *f = CSV_parse(filename, flags, sizeof(flags));
     
-    DEVICE_device_list *dl = MEM_calloc(sizeof(DEVICE_device_list), __func__);
+    DEV_device_list *dl = MEM_calloc(sizeof(DEV_device_list), __func__);
     
-    dl->AP_graph = DEVICE_compute_AP_graph(f);
+    dl->AP_graph = DEV_compute_AP_graph(f);
     dl->AP_count = f->types[APMAC].item_count;
     dl->device_count = f->types[MAC].item_count;
-    dl->devices = MEM_calloc_array(sizeof(Device), f->types[MAC].item_count, __func__);
+    dl->devices = MEM_calloc_array(sizeof(DEV_device), f->types[MAC].item_count, __func__);
     dl->csv = f;
     
     for (int i=0; i<dl->device_count; i++) {
-        Device *d = &dl->devices[i];
+        DEV_device *d = &dl->devices[i];
         
         d->logs_count = 0;
         d->local_csv = MEM_malloc(sizeof(CSV_file), __func__);
@@ -63,9 +63,12 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
     
     for (int i=0; i<dl->device_count; i++) {
         AP_list[i] = MEM_calloc(f->types[APMAC].item_count+1, __func__);
+        dl->devices[i].uid = -3;
     }
     
     long evil_AP = (long)KER_hash_find(dl->devices->local_csv->types[APMAC].tbl, "\0", 0);
+    long my_ap = (long)KER_hash_find(dl->devices->local_csv->types[APMAC].tbl, "78725D67ED70", 12);
+    long *my_count = MEM_calloc_array(sizeof(long), 1000, __func__);
     
     for (int i=0; i<f->row_count; i++) {
         CSV_cell *row = &f->data[i*f->column_count];
@@ -90,15 +93,30 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
             AP_list[row[MAC].l-1][last_AP[row[MAC].l-1]] = 1;
             encoutered_AP[row[MAC].l-1]++;
         }
-        if (row[APMAC].l != evil_AP)
+        if (row[APMAC].l != evil_AP) {
             dl->devices[row[MAC].l-1].logs_count++;
-        else
+        } else {
             dl->devices[row[MAC].l-1].skiped_logs++;
+            dl->skip_logs++;
+        }
+//        if (dl->devices[row[MAC].l-1].uid != row[UID].l-1 && dl->devices[row[MAC].l-1].uid != -3)
+//            printf("HAHAHAHHAHAHHAHA : %ld, %ld, %ld\n", row[MAC].l-1, dl->devices[row[MAC].l-1].uid, row[UID].l-1);
         dl->devices[row[MAC].l-1].uid = row[UID].l-1;
+        
+        if (row[APMAC].l == my_ap) {
+            my_count[row[MAC].l-1] += 1;
+//            printf("%ld\n", row[MAC].l-1);
+        }
+    }
+    
+    for (long i=0; i<1000; i++) {
+        if (my_count[i] > 100) {
+            printf("%3ld : %5ld\n",i, my_count[i]);
+        }
     }
     
     for (int i=0; i<dl->device_count; i++) {
-        Device *d = &dl->devices[i];
+        DEV_device *d = &dl->devices[i];
         
         d->average_AP_per_day = (float)encoutered_AP[i]/(float)total_days[i];
         d->average_changes_per_day = (float)AP_swap[i]/(float)total_days[i];
@@ -108,8 +126,7 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
         if (d->average_AP_per_day > 5 && d->average_changes_per_day > 8) {
             d->type = MOBILE;
             dl->total_mobile++;
-        }
-        else if (d->average_AP_per_day < 5 && d->average_changes_per_day < 8) {
+        } else if (d->average_AP_per_day < 5 && d->average_changes_per_day < 8) {
             d->type = STATIC;
             dl->total_fixe++;
         }
@@ -121,8 +138,6 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
         d->local_csv->row_count = d->logs_count;
         d->local_csv->data = MEM_malloc_array(sizeof(CSV_cell), d->local_csv->row_count*d->local_csv->column_count, __func__);
         
-        if (d->logs_count != 0)
-            dl->effective_device_count++;
     }
     
     MEM_free(current_date);
@@ -155,10 +170,16 @@ DEVICE_device_list *DEVICE_create_device_list(char filename[]) {
     }
     MEM_free(index);
     
+    for (int i=0; i<dl->device_count; i++) {
+        DEV_device *d = &dl->devices[i];
+        if (d->logs_count > 100 && d->end_time - d->start_time > 604800)
+            dl->effective_device_count++;
+    }
+    
     return dl;
 }
 
-float *DEVICE_compute_AP_graph(CSV_file *f) {
+float *DEV_compute_AP_graph(CSV_file *f) {
     char *saved_file_name = build_graph_name(f);
     
     FILE *fp = fopen(saved_file_name, "r+");
@@ -185,7 +206,7 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
             CSV_cell *row = &f->data[i*f->column_count];
             
             if (row[MAC].l == mac) {
-                if (current_date - row[TIMESTAMP].l < 10 && row[APMAC].l != current_AP && current_date - row[TIMESTAMP].l>=0) {
+                if (current_date - row[TIMESTAMP].l < 5*60 && row[APMAC].l != current_AP && current_date - row[TIMESTAMP].l>=0) {
                     distances[row[APMAC].l * AP_count + current_AP] += current_date - row[TIMESTAMP].l;
                     counts[row[APMAC].l * AP_count + current_AP] += 1;
                     
@@ -203,13 +224,17 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
     float *dist = MEM_calloc_array(AP_count*AP_count, sizeof(float), __func__);
     for (int i=1; i<=f->types[APMAC].item_count; i++) {
         for (int j=1; j<=f->types[APMAC].item_count; j++) {
-            if (counts[i * AP_count + j] > 30) {
+            if (counts[i * AP_count + j] > 50) {
                 dist[i * AP_count + j]
                         = (float)distances[i * AP_count + j] / (float)counts[i * AP_count + j];
             } else {
                 dist[i * AP_count + j] = 1000.;
             }
         }
+    }
+    
+    for (int i=0; i<AP_count; i++) {
+        dist[i * AP_count] = dist[i] = 1000.;
     }
     
     MEM_free(distances);
@@ -219,7 +244,7 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
     for (int i=1; i<=f->types[APMAC].item_count; i++) {
         dist[i * AP_count + i] = 0.;
     }
-    
+
     for (int k=1; k<=f->types[APMAC].item_count; k++) {
         for (int i=1; i<=f->types[APMAC].item_count; i++) {
             for (int j=1; j<=f->types[APMAC].item_count; j++) {
@@ -235,11 +260,11 @@ float *DEVICE_compute_AP_graph(CSV_file *f) {
     return dist;
 }
 
-float DEVICE_get_AP_distance(DEVICE_device_list *dl, long AP1, long AP2) {
+float DEV_get_AP_distance(DEV_device_list *dl, long AP1, long AP2) {
     return dl->AP_graph[AP1 * (dl->AP_count+1) + AP2];
 }
 
-float DEVICE_proximity(Device *d1, Device *d2, time_t start_ts, time_t end_ts, DEVICE_device_list *dl) {
+float DEV_proximity(DEV_device *d1, DEV_device *d2, time_t start_ts, time_t end_ts, DEV_device_list *dl) {
     long stop_signal = (long)KER_hash_find(d1->local_csv->types[STATUS_TYPE].tbl, "Stop", 4);
     
     long index_d1 = find_floor_index(d1, start_ts);
@@ -284,7 +309,7 @@ float DEVICE_proximity(Device *d1, Device *d2, time_t start_ts, time_t end_ts, D
         if (index_d1 < d1->local_csv->row_count && index_d2 < d2->local_csv->row_count) {
             float dist;
             if (AP_d1 != -1 && AP_d2 != -1)
-                dist = DEVICE_get_AP_distance(dl, AP_d1, AP_d2);
+                dist = DEV_get_AP_distance(dl, AP_d1, AP_d2);
             else
                 dist = 1000.;
             
@@ -356,10 +381,12 @@ float DEVICE_proximity(Device *d1, Device *d2, time_t start_ts, time_t end_ts, D
         return INFINITY;
 }
 
-void DEVICE_print_devices_stats(DEVICE_device_list *dl) {
+void DEV_print_devices_stats(DEV_device_list *dl) {
     printf("Total devices detected : %ld\n", dl->device_count);
     printf("Total mobiles : %ld\nTotal fixe : %ld\nTotal unknown : %ld\n", dl->total_mobile, dl->total_fixe, dl->total_unknown);
     printf("Total AP detected : %ld\n", dl->AP_count);
+    printf("Kept devices : %ld\n", dl->effective_device_count);
+    printf("Kept logs : %ld\n", dl->csv->row_count - dl->skip_logs);
     printf("   TYPE      LOGS   SKIPED        START          END     UID     MAC                                                        REAL-MAC\n");
     
     for (int i=0; i<dl->device_count; i++) {
@@ -397,7 +424,7 @@ void DEVICE_print_devices_stats(DEVICE_device_list *dl) {
     }
 }
 
-void DEVICE_store_graph(DEVICE_device_list *dl, char *filename) {
+void DEV_store_graph(DEV_device_list *dl, char *filename) {
     FILE *f = fopen(filename, "w");
     if (f) {
         fprintf(f, "graph {\n");
@@ -416,7 +443,7 @@ void DEVICE_store_graph(DEVICE_device_list *dl, char *filename) {
 }
 
 // TODO: add bound checking when in debug mode
-inline CSV_cell *DEVICE_get_row(Device *d, long index) {
+inline CSV_cell *DEV_get_row(DEV_device *d, long index) {
     return CSV_get_row(d->local_csv, index);
 }
 
@@ -424,21 +451,21 @@ inline CSV_cell *DEVICE_get_row(Device *d, long index) {
 /*  local functions             */
 /* ---------------------------- */
 
-long find_floor_index(Device *d, time_t ts) {
+long find_floor_index(DEV_device *d, time_t ts) {
     long left = 0;
     long right = d->local_csv->row_count-1;
     CSV_cell *row;
     
     while (left < right) {
         long m = (right+left+1)/2;
-        row =  DEVICE_get_row(d, m);
+        row =  DEV_get_row(d, m);
         if (row[TIMESTAMP].l < ts)
             left = m;
         else
             right = m-1;
     }
     
-    row = DEVICE_get_row(d, left);
+    row = DEV_get_row(d, left);
     if (row[TIMESTAMP].l > ts)
         return --left;
     return left;

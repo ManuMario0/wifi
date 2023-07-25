@@ -55,6 +55,15 @@ endif()
 #    include_directories("C:/mingw64/x86_64-w64-mingw32/include/")
 #endif()
 
+# ------------------------
+# - Vulkan setup         -
+# ------------------------
+
+# find_library(VKLIB vulkan HINTS "/usr/local/lib")
+# target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${VKLIB})
+# find_library(GLFWLIB glfw HINTS "/usr/local/opt/glfw/lib")
+# target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${GLFWLIB})
+
 # -----------------------------------
 # - compilation spec files	        -
 # -----------------------------------

@@ -35,7 +35,7 @@ typedef struct {
     
     long        device_count;
     long        stats[5];
-    Device **   devices;
+    DEV_device **   devices;
 } USR_user;
 
 typedef struct {
@@ -43,15 +43,22 @@ typedef struct {
     USR_user *      users;
 } USR_user_list;
 
-extern USR_user_list *USR_create_user_list(DEVICE_device_list *dl);
+/*
+ Create users
+ */
+extern USR_user_list *USR_create_user_list(DEV_device_list *dl);
 extern USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
-                                                    DEVICE_device_list *dl,
+                                                    DEV_device_list *dl,
                                                     CSV_date           start,
                                                     CSV_date           period_length,
                                                     int                interval,
                                                     CSV_date           record_start,
                                                     CSV_date           record_end,
                                                     int                filter);
+
+/*
+ Print users statistics
+ */
 extern void USR_print_users_stats(USR_user_list *ul);
 
 typedef struct USR_event {
@@ -71,14 +78,40 @@ typedef struct {
     long        uid;
 } USR_schedule;
 
-extern USR_schedule *USR_get_user_schedule(DEVICE_device_list *dl, USR_user *usr);
-extern void USR_print_schedule(USR_schedule *schedule);
+/*
+ Compute user schedule (not working properly)
+ */
+extern USR_schedule *USR_get_user_schedule(DEV_device_list *dl, USR_user *usr);
 
+/*
+ Print user schedule
+ */
+extern void USR_print_schedule(DEV_ap_list *apl, USR_schedule *schedule);
 
-extern void USR_export_user_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, USR_user *usr, char dir[]);
+/*
+ Export user data (format developed in inter/export.c)
+ */
+extern void USR_export_user_data(DEV_device_list *dl, DEV_ap_list *apl, USR_user *usr, char dir[]);
 
-extern USR_schedule *USR_produce_device_schedule(DEVICE_device_list *dl, Device *d);
+/*
+ Produce device schedule based on the approximate speed of the user
+ */
+extern USR_schedule *USR_produce_device_schedule(DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d);
+
+/*
+ Produce device schedule based on the holding time of AP
+ (if a device holds an AP for more than 10 minutes, we say that the device is static)
+ */
+extern USR_schedule *USR_produce_device_schedule_v2(DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d);
+
+/*
+ Destroy schedule
+ */
 extern void USR_destroy_schedule(USR_schedule *schedule);
-extern void USR_export_global_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, char dir[]);
+
+/*
+ Export the data of all the devices in a 'global' user file format
+ */
+extern void USR_export_global_data(DEV_device_list *dl, DEV_ap_list *apl, char dir[]);
 
 #endif /* USR_common_h */

@@ -16,29 +16,29 @@
 /*  implementation              */
 /* ---------------------------- */
 
-USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
+USR_user_list *USR_create_user_list(DEV_device_list *dl) {
     USR_user_list *ul = MEM_malloc(sizeof(USR_user_list), __func__);
     ul->user_count = dl->devices->local_csv->types[UID].item_count;
     ul->users = MEM_calloc_array(ul->user_count, sizeof(USR_user), __func__);
     
     for (int i=0; i<dl->device_count; i++) {
-        Device *d = &dl->devices[i];
-        if (d->logs_count > 50 && d->end_time - d->start_time > 604800) {
+        DEV_device *d = &dl->devices[i];
+        if (d->logs_count > 100 && d->end_time - d->start_time > 604800) {
             ul->users[d->uid].device_count ++;
             ul->users[d->uid].stats[d->type] ++;
         }
     }
     
     for (int i=0; i<ul->user_count; i++) {
-        ul->users[i].devices = MEM_malloc_array(ul->users[i].device_count, sizeof(Device*), __func__);
+        ul->users[i].devices = MEM_malloc_array(ul->users[i].device_count, sizeof(DEV_device*), __func__);
         ul->users[i].device_count = 0;
         ul->users[i].uid = i;
         ul->users[i].real_uid = dl->csv->types[UID].reverse_tbl[i];
     }
     
     for (int i=0; i<dl->device_count; i++) {
-        Device *d = &dl->devices[i];
-        if (d->logs_count > 50 && d->end_time - d->start_time > 604800) {
+        DEV_device *d = &dl->devices[i];
+        if (d->logs_count > 100 && d->end_time - d->start_time > 604800) {
             ul->users[d->uid].devices[ul->users[d->uid].device_count] = d;
             ul->users[d->uid].device_count ++;
         }
@@ -48,7 +48,7 @@ USR_user_list *USR_create_user_list(DEVICE_device_list *dl) {
 }
 
 USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
-                                             DEVICE_device_list *dl,
+                                             DEV_device_list *dl,
                                              CSV_date           start,
                                              CSV_date           period_length,
                                              int                interval,
@@ -148,7 +148,7 @@ USR_relation *USR_create_user_relation_graph(USR_user_list *    ul,
                     if (ul->users[k].devices[i]->type & filter) {
                         for (long j=0; j<ul->users[l].device_count; j++) {
                             if (ul->users[l].devices[j]->type & filter) {
-                                float dist = DEVICE_proximity(ul->users[k].devices[i], ul->users[l].devices[j], current_date+record_start_ts, current_date+record_end_ts, dl);
+                                float dist = DEV_proximity(ul->users[k].devices[i], ul->users[l].devices[j], current_date+record_start_ts, current_date+record_end_ts, dl);
                                 
                                 if (dist < 5.5) {
                                     rlt->relation_graph[ul->users[k].devices[i]->uid * ul->user_count + ul->users[l].devices[j]->uid] ++;

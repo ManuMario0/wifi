@@ -18,19 +18,28 @@ typedef struct {
     int         location;
     char *      name;
     char *      map_location;
-} DEVICE_ap;
+} DEV_ap;
 
 typedef struct {
-    long        ap_count;
-    DEVICE_ap * ap;
-    KER_hashTable *mac_addr;
+    long            ap_count;
+    DEV_ap *        ap;
+    KER_hashTable * mac_addr;
+    KER_hashTable * translate;
     
-    long        stats[5];
-} DEVICE_ap_list;
+    long            stats[5];
+} DEV_ap_list;
 
-extern DEVICE_ap_list *DEVICE_acquire_access_points(char filename[]);
-extern void DEVICE_print_ap_stats(DEVICE_ap_list *apl);
+/*
+ Get the AP data (names, MAD addr, etc ....) from the database
+ */
+extern DEV_ap_list *DEV_acquire_access_points(char filename[]);
 
+/*
+ Print general statistics on the AP
+ */
+extern void DEV_print_ap_stats(DEV_ap_list *apl);
+
+// structure of the device database
 enum {
     DATE,
     TIMESTAMP,
@@ -71,13 +80,14 @@ typedef struct {
     
     float       average_changes_per_day;
     float       average_AP_per_day;
-} Device;
+} DEV_device;
 
 typedef struct {
-    Device *devices;
+    DEV_device *devices;
     long device_count;
     long effective_device_count;
     long AP_count;
+    long skip_logs;
     
     CSV_file *csv;
     
@@ -86,14 +96,61 @@ typedef struct {
     long total_unknown;
     
     float *AP_graph;
-} DEVICE_device_list;
+} DEV_device_list;
 
-extern DEVICE_device_list *DEVICE_create_device_list(char filename[]);
-extern float *DEVICE_compute_AP_graph(CSV_file *f);
-extern float DEVICE_proximity(Device *d1, Device *d2, time_t start_ts, time_t end_ts, DEVICE_device_list *dl);
-extern float DEVICE_get_AP_distance(DEVICE_device_list *dl, long AP1, long AP2);
-extern void DEVICE_print_devices_stats(DEVICE_device_list *dl);
-extern void DEVICE_store_graph(DEVICE_device_list *dl, char *filename);
-extern CSV_cell *DEVICE_get_row(Device *d, long index);
+/*
+ Acquire the device list (and then some)
+ */
+extern DEV_device_list *DEV_create_device_list(char filename[]);
+
+/*
+ Estimate the physical distance between APs by averaging the time
+ between two logs of different AP
+ */
+extern float *DEV_compute_AP_graph(CSV_file *f);
+
+/*
+ Compute the average distance between two users using the AP graph
+ */
+extern float DEV_proximity(DEV_device *d1, DEV_device *d2, time_t start_ts, time_t end_ts, DEV_device_list *dl);
+
+/*
+ Get theh distance between AP1 and AP2
+ */
+extern float DEV_get_AP_distance(DEV_device_list *dl, long AP1, long AP2);
+
+/*
+ Print general statistics on the device database
+ */
+extern void DEV_print_devices_stats(DEV_device_list *dl);
+
+/*
+ Store the AP graph to be further processed with other software
+ */
+extern void DEV_store_graph(DEV_device_list *dl, char *filename);
+
+/*
+ Get a log from the device
+ */
+extern CSV_cell *DEV_get_row(DEV_device *d, long index);
+
+
+
+/*
+ Some fancy try : NOT WORKING ! DO NOT TOUCH !
+ */
+
+//#define LEN_FP 10000
+static int fft_threashold[] = {1, 10, 50, 100, 250, 500, 1000, 5000, 10000, 20000, 50000};
+#define FFT_FP 100
+
+typedef struct {
+    long    prefered_AP;
+    float   fingerprint[FFT_FP];
+} DEV_fp;
+
+extern DEV_fp *DEV_get_fp(DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d, time_t start, time_t end);
+extern float DEV_compare_fp(DEV_fp *fp1, DEV_fp *fp2);
+extern void DEV_print_fp(DEV_fp *fp);
 
 #endif /* DEVICE_common_h */

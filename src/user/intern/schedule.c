@@ -6,6 +6,7 @@
 //
 
 #include <limits.h>
+#include <string.h>
 
 #include "schedule.h"
 
@@ -30,20 +31,20 @@ typedef struct {
 /*  local functions             */
 /* ---------------------------- */
 
-static USR_schedule *prepare_schedule(DEVICE_device_list *dl, USR_user *usr);
-static void update_speed(DEVICE_device_list *dl,
+static USR_schedule *prepare_schedule(DEV_device_list *dl, USR_user *usr);
+static void update_speed(DEV_device_list *dl,
                          USR_user *usr,
                          long *indexes,
                          time_t start,
                          float *speed,
                          long *index);
-static float look_ahead(DEVICE_device_list *dl,
+static float look_ahead(DEV_device_list *dl,
                         USR_user *usr,
                         long *indexes,
                         long index,
                         int distance);
-static Speed *compute_speeds(DEVICE_device_list *dl, USR_user *usr);
-static void compute_speed(DEVICE_device_list *dl,
+static Speed *compute_speeds(DEV_device_list *dl, USR_user *usr);
+static void compute_speed(DEV_device_list *dl,
                           USR_user *usr,
                           long *indexes,
                           time_t start,
@@ -55,58 +56,166 @@ static void set_speed(Speed *s,
                       float speed,
                       long timestamp,
                       long AP);
+static float *compute_device_speed(DEV_device_list *dl, DEV_device *d);
+static USR_event *get_next_event(DEV_device *d, DEV_ap_list *apl, float *speeds, long *_current_index, long end);
 
 /* ---------------------------- */
 /*  implementation              */
 /* ---------------------------- */
 
-USR_schedule *USR_get_user_schedule(DEVICE_device_list *dl, USR_user *usr) {
-    compute_speeds(dl, usr);
+USR_schedule *USR_get_user_schedule(DEV_device_list *dl, USR_user *usr) {
+    //compute_speeds(dl, usr);
     return prepare_schedule(dl, usr);
 }
 
-void USR_print_schedule(USR_schedule *schedule) {
+void USR_print_schedule(DEV_ap_list *apl, USR_schedule *schedule) {
     printf("Number of events : %ld\n", schedule->event_count);
-    printf("   TYPE                 START                   END\n");
+    printf("   TYPE                 START                   END    AP\n");
     
     USR_event *e = schedule->events;
     for (int i=0; i<schedule->event_count; i++) {
+        char buffer[2048];
         switch (e->type) {
             case STOP:
                 printf("   STOP   ");
+                strftime(buffer, 2048, "%F %T", localtime(&e->start));
+                printf("%s   ", buffer);
+                
+                strftime(buffer, 2048, "%F %T", localtime(&e->end));
+                printf("%s   ", buffer);
+                
+                printf("%3ld   ", e->AP);
+                
+                printf("%s\n", apl->ap[e->AP-1].name);
                 break;
                 
             case MOVING:
                 printf(" MOVING   ");
+                strftime(buffer, 2048, "%F %T", localtime(&e->start));
+                printf("%s   ", buffer);
+                
+                strftime(buffer, 2048, "%F %T", localtime(&e->end));
+                printf("%s   ", buffer);
+                
+                printf("%3ld   ", e->AP);
+                
+                printf("\n");
                 break;
                 
             default:
                 break;
         }
         
-        char buffer[2048];
-        strftime(buffer, 2048, "%F %T", localtime(&e->start));
-        printf("%s   ", buffer);
-        
-        strftime(buffer, 2048, "%F %T", localtime(&e->end));
-        printf("%s\n", buffer);
-        
         e = e->next;
     }
+}
+
+USR_schedule *USR_produce_device_schedule(DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d) {
+    USR_schedule *schedule = MEM_calloc(sizeof(USR_schedule), __func__);
+    
+    float *speeds = compute_device_speed(dl, d);
+    
+    long current_index = 0;
+    while (current_index < d->logs_count-1) {
+        USR_event *e = get_next_event(d, apl, speeds, &current_index, d->logs_count);
+        schedule->event_count++;
+        schedule->uid = d->mac;
+        
+        if (schedule->events) {
+            e->next = schedule->events;
+            e->prev = schedule->events->prev;
+            schedule->events->prev->next = e;
+            schedule->events->prev = e;
+        } else {
+            schedule->events = e;
+            e->next = e;
+            e->prev = e;
+        }
+    }
+    
+    MEM_free(speeds);
+    
+    return schedule;
+}
+
+void USR_destroy_schedule(USR_schedule *schedule) {
+    USR_event *e = schedule->events;
+    do {
+        USR_event *tmp = e;
+        e = e->next;
+        MEM_free(tmp);
+    } while (e != schedule->events);
+    MEM_free(schedule);
+}
+
+USR_schedule *USR_produce_device_schedule_v2(DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d) {
+    USR_schedule *schedule = MEM_calloc(sizeof(USR_schedule), __func__);
+    long stop = (long)KER_hash_find(d->local_csv->types[STATUS_TYPE].tbl, "Stop", 4);
+    
+    CSV_cell *row = CSV_get_row(d->local_csv, 0);
+    time_t current_time = row[TIMESTAMP].l;
+    long holding_time = 0;
+    long ap = row[APMAC].l;
+    for (long i=1; i<d->logs_count; i++) {
+        row = CSV_get_row(d->local_csv, i);
+        holding_time += row[TIMESTAMP].l - current_time;
+        current_time = row[TIMESTAMP].l;
+        
+        if (row[APMAC].l != ap || row[STATUS_TYPE].l == stop) {
+            if (holding_time > 600) {
+                USR_event *e = MEM_calloc(sizeof(USR_event), __func__);
+                e->type = STOP;
+                e->start = row[TIMESTAMP].l - holding_time;
+                e->end = row[TIMESTAMP].l;
+                char *mac = CSV_reverse_id(d->local_csv, APMAC, ap);
+                long index = (long)KER_hash_find(apl->mac_addr, mac, (int)strlen(mac));
+                if (index==0) {
+                    e->AP = -1;
+                } else {
+                    e->AP = index;
+                }
+                
+                schedule->event_count++;
+                schedule->uid = d->mac;
+                
+                if (schedule->events) {
+                    e->next = schedule->events;
+                    e->prev = schedule->events->prev;
+                    schedule->events->prev->next = e;
+                    schedule->events->prev = e;
+                } else {
+                    schedule->events = e;
+                    e->next = e;
+                    e->prev = e;
+                }
+            }
+            
+            if (row[STATUS_TYPE].l == stop) {
+                i++;
+                row = CSV_get_row(d->local_csv, i);
+                current_time = row[TIMESTAMP].l;
+            }
+            
+            ap = row[APMAC].l;
+            holding_time = 0;
+        }
+    }
+    
+    return schedule;
 }
 
 /* ---------------------------- */
 /*  local functions             */
 /* ---------------------------- */
 
-long find_floor_index(Device *d, time_t ts) {
+long find_floor_index(DEV_device *d, time_t ts) {
     long left = 0;
     long right = d->local_csv->row_count-1;
     CSV_cell *row;
     
     while (left < right) {
         long m = (right+left+1)/2;
-        row = DEVICE_get_row(d, m);
+        row = DEV_get_row(d, m);
         if (row[TIMESTAMP].l < ts)
             left = m;
         else if (row[TIMESTAMP].l > ts)
@@ -115,13 +224,13 @@ long find_floor_index(Device *d, time_t ts) {
             return m;
     }
     
-    row = DEVICE_get_row(d, left);
+    row = DEV_get_row(d, left);
     if (row[TIMESTAMP].l > ts)
         return --left;
     return left;
 }
 
-void update_speed(DEVICE_device_list *dl,
+void update_speed(DEV_device_list *dl,
                   USR_user *usr,
                   long *indexes,
                   time_t start,
@@ -132,10 +241,10 @@ void update_speed(DEVICE_device_list *dl,
         if (usr->devices[i]->type == MOBILE
             && indexes[i] >= 0
             && indexes[i]+1 < usr->devices[i]->logs_count) {
-            CSV_cell *row = DEVICE_get_row(usr->devices[i], indexes[i]);
-            CSV_cell *next_row = DEVICE_get_row(usr->devices[i], indexes[i]+1);
+            CSV_cell *row = DEV_get_row(usr->devices[i], indexes[i]);
+            CSV_cell *next_row = DEV_get_row(usr->devices[i], indexes[i]+1);
             
-            float dist = DEVICE_get_AP_distance(dl, row[APMAC].l, next_row[APMAC].l);
+            float dist = DEV_get_AP_distance(dl, row[APMAC].l, next_row[APMAC].l);
             long time = next_row[TIMESTAMP].l - row[TIMESTAMP].l;
             
             if (time > 0) {
@@ -147,7 +256,7 @@ void update_speed(DEVICE_device_list *dl,
     }
 }
 
-float look_ahead(DEVICE_device_list *dl,
+float look_ahead(DEV_device_list *dl,
                  USR_user *usr,
                  long *indexes,
                  long index,
@@ -157,7 +266,7 @@ float look_ahead(DEVICE_device_list *dl,
     float speed = 0.;
     
     for (int i=0; i<distance; i++) {
-        time_t start = DEVICE_get_row(usr->devices[index], indexes[index]+1)[TIMESTAMP].l;
+        time_t start = DEV_get_row(usr->devices[index], indexes[index]+1)[TIMESTAMP].l;
         index = -1;
         
         update_speed(dl, usr, local_indexes, start, &speed, &index);
@@ -174,7 +283,7 @@ float look_ahead(DEVICE_device_list *dl,
  * Why not use a bit of deep learning to identify those behviors even though I think it'd be overkill considering
  * the current classification I'm using.
  */
-USR_event *acquire_next_event(DEVICE_device_list *dl, USR_user *usr, time_t start) {
+USR_event *acquire_next_event(DEV_device_list *dl, USR_user *usr, time_t start) {
     USR_event *event = MEM_calloc(sizeof(USR_event), __func__);
     event->start = start;
     
@@ -188,7 +297,7 @@ USR_event *acquire_next_event(DEVICE_device_list *dl, USR_user *usr, time_t star
     if (speed > SPEED_THRESHOLD) {
         event->type = MOVING;
         while (speed > CORRECTED_SPEED_THRESHOLD) {
-            start = DEVICE_get_row(usr->devices[index], indexes[index]+1)[TIMESTAMP].l;
+            start = DEV_get_row(usr->devices[index], indexes[index]+1)[TIMESTAMP].l;
             speed = 0.;
             
             update_speed(dl, usr, indexes, start, &speed, &index);
@@ -199,7 +308,7 @@ USR_event *acquire_next_event(DEVICE_device_list *dl, USR_user *usr, time_t star
             if (index == -1)
                 break;
             
-            start = DEVICE_get_row(usr->devices[index], indexes[index]+1)[TIMESTAMP].l;
+            start = DEV_get_row(usr->devices[index], indexes[index]+1)[TIMESTAMP].l;
             speed = 0.;
             index = -1;
             
@@ -214,7 +323,7 @@ USR_event *acquire_next_event(DEVICE_device_list *dl, USR_user *usr, time_t star
     return event;
 }
 
-USR_schedule *prepare_schedule(DEVICE_device_list *dl, USR_user *usr) {
+USR_schedule *prepare_schedule(DEV_device_list *dl, USR_user *usr) {
     USR_schedule *schedule = MEM_calloc(sizeof(USR_schedule), __func__);
     
     schedule->uid = usr->uid;
@@ -254,7 +363,7 @@ USR_schedule *prepare_schedule(DEVICE_device_list *dl, USR_user *usr) {
     return schedule;
 }
 
-void compute_speed(DEVICE_device_list *dl,
+void compute_speed(DEV_device_list *dl,
                    USR_user *usr,
                    long *indexes,
                    time_t start,
@@ -264,10 +373,10 @@ void compute_speed(DEVICE_device_list *dl,
         if (usr->devices[i]->type == MOBILE
             && indexes[i] >= 0
             && indexes[i]+1 < usr->devices[i]->logs_count) {
-            CSV_cell *row = DEVICE_get_row(usr->devices[i], indexes[i]);
-            CSV_cell *next_row = DEVICE_get_row(usr->devices[i], indexes[i]+1);
+            CSV_cell *row = DEV_get_row(usr->devices[i], indexes[i]);
+            CSV_cell *next_row = DEV_get_row(usr->devices[i], indexes[i]+1);
             
-            float dist = DEVICE_get_AP_distance(dl, row[APMAC].l, next_row[APMAC].l);
+            float dist = DEV_get_AP_distance(dl, row[APMAC].l, next_row[APMAC].l);
             long time = next_row[TIMESTAMP].l - row[TIMESTAMP].l;
             
             if (time > 0) {
@@ -297,7 +406,7 @@ void set_speed(Speed *s, long *current_size, long *current_pos, float speed, lon
     }
 }
 
-Speed *compute_speeds(DEVICE_device_list *dl, USR_user *usr) {
+Speed *compute_speeds(DEV_device_list *dl, USR_user *usr) {
     Speed *s = MEM_calloc(sizeof(Speed), __func__);
     long current_size = 1024;
     long current_pos = 0;
@@ -323,10 +432,10 @@ Speed *compute_speeds(DEVICE_device_list *dl, USR_user *usr) {
     
     while (start < end) {
         compute_speed(dl, usr, indexes, start, &speed, &index);
-        set_speed(s, &current_size, &current_pos, speed, start, DEVICE_get_row(usr->devices[index], indexes[index])[APMAC].l);
+        set_speed(s, &current_size, &current_pos, speed, start, DEV_get_row(usr->devices[index], indexes[index])[APMAC].l);
         if (index != -1)
             indexes[index]++;
-        start = DEVICE_get_row(usr->devices[index], indexes[index])[TIMESTAMP].l;
+        start = DEV_get_row(usr->devices[index], indexes[index])[TIMESTAMP].l;
         
         for (int i=0; i<usr->device_count; i++) {
             if (i != index)
@@ -359,81 +468,76 @@ Speed *compute_speeds(DEVICE_device_list *dl, USR_user *usr) {
 
 
 
-float *compute_device_speed(DEVICE_device_list *dl, Device *d) {
+float *compute_device_speed(DEV_device_list *dl, DEV_device *d) {
     float *speeds = MEM_calloc_array(sizeof(float), d->logs_count-1, __func__);
     
     for (long i=0; i<d->logs_count-1; i++) {
         CSV_cell *row1 = CSV_get_row(d->local_csv, i);
         CSV_cell *row2 = CSV_get_row(d->local_csv, i+1);
-        speeds[i] = DEVICE_get_AP_distance(dl, row1[APMAC].l, row2[APMAC].l)*(row2[TIMESTAMP].l-row1[TIMESTAMP].l);
+        if (DEV_get_AP_distance(dl, row1[APMAC].l, row2[APMAC].l) < 500.)
+            speeds[i] = DEV_get_AP_distance(dl, row1[APMAC].l, row2[APMAC].l)/(float)(row2[TIMESTAMP].l-row1[TIMESTAMP].l+1);
+        else
+            speeds[i] = 0.;
     }
     
     return speeds;
 }
 
+long find_argmax(long *tbl, long len) {
+    long max = tbl[1];
+    long index = 1;
+    for (long i=1; i<len; i++) {
+        if (tbl[i] >= max) {
+            max = tbl[i];
+            index = i;
+        }
+    }
+    return index;
+}
 
-USR_event *get_next_event(Device *d, float *speeds, long *_current_index, long end) {
+USR_event *get_next_event(DEV_device *d, DEV_ap_list *apl, float *speeds, long *_current_index, long end) {
     USR_event *e = MEM_calloc(sizeof(USR_event), __func__);
     long current_index = *_current_index;
+    long *ap_time_count = MEM_calloc_array(sizeof(long), apl->ap_count+1, __func__);
     
     CSV_cell *row = CSV_get_row(d->local_csv, current_index);
     e->start = row[TIMESTAMP].l;
     if (speeds[current_index] > SPEED_THRESHOLD) {
         // moving
         e->type = MOVING;
-        while (current_index < end-1 && speeds[current_index] > CORRECTED_SPEED_THRESHOLD) {
+        while (current_index < end-1
+               && (speeds[current_index] > CORRECTED_SPEED_THRESHOLD || speeds[current_index+1] > CORRECTED_SPEED_THRESHOLD)) {
             current_index++;
         }
     } else {
         // not moving
         e->type = STOP;
-        while (current_index < end-1 && (speeds[current_index] < SPEED_THRESHOLD || speeds[current_index+1] < SPEED_THRESHOLD)) {
-            current_index++;
+        while (current_index < end-1
+               && (speeds[current_index] <= SPEED_THRESHOLD || speeds[current_index+1] <= SPEED_THRESHOLD)) {
+            row = CSV_get_row(d->local_csv, current_index);
+            CSV_cell *tmp = CSV_get_row(d->local_csv, current_index+1);
+            if ((tmp[TIMESTAMP].l - row[TIMESTAMP].l) > 3600 && row[STATUS_TYPE].l == (long)KER_hash_find(d->local_csv->types[STATUS_TYPE].tbl, "Stop", 4)) {
+                e->end = row[TIMESTAMP].l;
+                current_index++;
+                break;
+            } else {
+                char *mac = CSV_reverse_id(d->local_csv, APMAC, row[APMAC].l);
+                long index = (long)KER_hash_find(apl->mac_addr, mac, (int)strlen(mac));
+                ap_time_count[index] += (tmp[TIMESTAMP].l - row[TIMESTAMP].l);
+                current_index++;
+            }
         }
+        e->AP = find_argmax(ap_time_count, apl->ap_count+1);
     }
     
-    row = CSV_get_row(d->local_csv, current_index);
-    e->end = row[TIMESTAMP].l;
+    if (!e->end) {
+        row = CSV_get_row(d->local_csv, current_index);
+        e->end = row[TIMESTAMP].l;
+    }
     
     *_current_index = current_index;
     
+    MEM_free(ap_time_count);
+    
     return e;
-}
-
-USR_schedule *USR_produce_device_schedule(DEVICE_device_list *dl, Device *d) {
-    USR_schedule *schedule = MEM_calloc(sizeof(USR_schedule), __func__);
-    
-    float *speeds = compute_device_speed(dl, d);
-    
-    long current_index = 0;
-    while (current_index < d->logs_count-1) {
-        USR_event *e = get_next_event(d, speeds, &current_index, d->logs_count);
-        schedule->event_count++;
-        schedule->uid = d->mac;
-        
-        if (schedule->events) {
-            e->next = schedule->events;
-            e->prev = schedule->events->prev;
-            schedule->events->prev->next = e;
-            schedule->events->prev = e;
-        } else {
-            schedule->events = e;
-            e->next = e;
-            e->prev = e;
-        }
-    }
-    
-    MEM_free(speeds);
-    
-    return schedule;
-}
-
-void USR_destroy_schedule(USR_schedule *schedule) {
-    USR_event *e = schedule->events;
-    do {
-        USR_event *tmp = e;
-        e = e->next;
-        MEM_free(tmp);
-    } while (e != schedule->events);
-    MEM_free(schedule);
 }

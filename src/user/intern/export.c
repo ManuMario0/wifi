@@ -17,11 +17,12 @@
 /*  local functions             */
 /* ---------------------------- */
 
-static void record_device(FILE *f, DEVICE_device_list *dl, DEVICE_ap_list *apl, Device *d);
-static void record_global_stats(FILE *f, Device *d);
-static void record_schedule(FILE *f, DEVICE_device_list *dl, Device *d);
-static void record_ap_stats(FILE *f, DEVICE_ap_list *apl, Device *d);
-static void record_day_stats(FILE *f, Device *d);
+static void record_device(FILE *f, DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d);
+static void record_global_stats(FILE *f, DEV_device *d);
+static void record_schedule(FILE *f, DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d);
+static void record_ap_stats(FILE *f, DEV_ap_list *apl, DEV_device *d);
+static void record_day_stats(FILE *f, DEV_device *d);
+static void record_ap(FILE *f, DEV_ap_list *apl);
 
 /* ---------------------------- */
 /*  implementation              */
@@ -47,7 +48,7 @@ static void record_day_stats(FILE *f, Device *d);
  end
  */
 
-void USR_export_user_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, USR_user *usr, char dir[]) {
+void USR_export_user_data(DEV_device_list *dl, DEV_ap_list *apl, USR_user *usr, char dir[]) {
     char path[2024];
     memcpy(path, dir, strlen(dir));
     memcpy(&path[strlen(dir)], usr->real_uid, strlen(usr->real_uid));
@@ -57,18 +58,20 @@ void USR_export_user_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, USR_user 
     
     fprintf(f, "UID:%s\n", usr->real_uid);
     fprintf(f, "Devices:%ld\n", usr->device_count);
-    fprintf(f, "Mobile:%ld\n", usr->stats[MOBILE]);
-    fprintf(f, "Static:%ld\n", usr->stats[STATIC]);
+    fprintf(f, "AP:%ld\n", apl->ap_count);
+    record_ap(f, apl);
+//    fprintf(f, "Mobile:%ld\n", usr->stats[MOBILE]);
+//    fprintf(f, "Static:%ld\n", usr->stats[STATIC]);
     
     for (int i=0; i<usr->device_count; i++) {
-        Device *d = usr->devices[i];
+        DEV_device *d = usr->devices[i];
         record_device(f, dl, apl, d);
     }
     
     fclose(f);
 }
 
-void USR_export_global_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, char dir[]) {
+void USR_export_global_data(DEV_device_list *dl, DEV_ap_list *apl, char dir[]) {
     char path[2024];
     memcpy(path, dir, strlen(dir));
     memcpy(&path[strlen(dir)], "global.usr", strlen("global.usr")+1);
@@ -77,12 +80,14 @@ void USR_export_global_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, char di
     
     fprintf(f, "UID:Global\n");
     fprintf(f, "Devices:%ld\n", dl->effective_device_count);
-    fprintf(f, "Mobile:%ld\n", dl->total_mobile);
-    fprintf(f, "Static:%ld\n", dl->total_fixe);
+    fprintf(f, "AP:%ld\n", apl->ap_count);
+    record_ap(f, apl);
+//    fprintf(f, "Mobile:%ld\n", dl->total_mobile);
+//    fprintf(f, "Static:%ld\n", dl->total_fixe);
     
     for (int i=0; i<dl->device_count; i++) {
-        Device *d = &dl->devices[i];
-        if (d->logs_count > 100 && d->end_time - d->start_time > 14*604800) {
+        DEV_device *d = &dl->devices[i];
+        if (d->logs_count > 100 && d->end_time - d->start_time > 604800) {
             record_device(f, dl, apl, d);
         }
     }
@@ -94,7 +99,15 @@ void USR_export_global_data(DEVICE_device_list *dl, DEVICE_ap_list *apl, char di
 /*  local functions             */
 /* ---------------------------- */
 
-void record_global_stats(FILE *f, Device *d) {
+void record_ap(FILE *f, DEV_ap_list *apl) {
+    fprintf(f, "AP:begin\n");
+    for (long i=0; i<apl->ap_count; i++) {
+        fprintf(f, "NAME:%s;UID:%ld\n", apl->ap[i].name, i+1);
+    }
+    fprintf(f, "end\n");
+}
+
+void record_global_stats(FILE *f, DEV_device *d) {
     fprintf(f, "MAC:%s\n", d->real_mac);
     switch (d->type) {
         case MOBILE:
@@ -114,20 +127,20 @@ void record_global_stats(FILE *f, Device *d) {
     }
 }
 
-void record_schedule(FILE *f, DEVICE_device_list *dl, Device *d) {
+void record_schedule(FILE *f, DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d) {
     fprintf(f, "Schedule:begin\n");
     
-    USR_schedule *schedule = USR_produce_device_schedule(dl, d);
+    USR_schedule *schedule = USR_produce_device_schedule_v2(dl, apl, d);
     
     USR_event *e = schedule->events;
     for (long i=0; i<schedule->event_count; i++) {
         switch (e->type) {
             case MOVING:
-                fprintf(f, "Start:%ld;End:%ld;Type:MOVING\n", e->start, e->end);
+                fprintf(f, "Start:%ld;End:%ld;Type:MOVING;AP:-1\n", e->start, e->end);
                 break;
                 
             case STOP:
-                fprintf(f, "Start:%ld;End:%ld;Type:STOP\n", e->start, e->end);
+                fprintf(f, "Start:%ld;End:%ld;Type:STOP;AP:%ld\n", e->start, e->end, e->AP);
                 break;
                 
             default:
@@ -141,7 +154,7 @@ void record_schedule(FILE *f, DEVICE_device_list *dl, Device *d) {
     fprintf(f, "end\n");
 }
 
-void record_ap_stats(FILE *f, DEVICE_ap_list *apl, Device *d) {
+void record_ap_stats(FILE *f, DEV_ap_list *apl, DEV_device *d) {
     fprintf(f, "AP:begin\n");
     
     int *ap_stats = MEM_calloc_array(sizeof(int), apl->ap_count, __func__);
@@ -150,7 +163,7 @@ void record_ap_stats(FILE *f, DEVICE_ap_list *apl, Device *d) {
     start_data += 86400;
     char *ap_set = MEM_calloc(apl->ap_count, __func__);
     for (long j=0; j<d->logs_count; j++) {
-        CSV_cell *current_row = DEVICE_get_row(d, j);
+        CSV_cell *current_row = DEV_get_row(d, j);
         if (current_row[TIMESTAMP].l > start_data) {
             start_data += 86400;
             memset(ap_set, 0, apl->ap_count);
@@ -168,16 +181,53 @@ void record_ap_stats(FILE *f, DEVICE_ap_list *apl, Device *d) {
         fprintf(f, "UID:%s;Freq:%d\n", apl->ap[i].name, ap_stats[i]);
     }
     
-    
-    
     MEM_free(ap_stats);
     MEM_free(ap_set);
     
     fprintf(f, "end\n");
 }
 
-void record_day_stats(FILE *f, Device *d) {
-    fprintf(f, "Day:begin\n");
+void record_ap_swaps(FILE *f, DEV_ap_list *apl, DEV_device *d) {
+    fprintf(f, "APSwaps:begin\n");
+    
+    CSV_cell *row = CSV_get_row(d->local_csv, 0);
+    CSV_date current_date = {0};
+    current_date.year = row[DATE].date->year;
+    current_date.month = row[DATE].date->month;
+    current_date.day = row[DATE].date->day;
+    
+    long encoutered_AP = 0;
+    long AP_swap = 0;
+    long last_AP = 0;
+    
+    long evil_AP = (long)KER_hash_find(d->local_csv->types[APMAC].tbl, "\0", 0);
+    
+    for (int i=0; i<d->local_csv->row_count; i++) {
+        row = CSV_get_row(d->local_csv, i);
+        
+        if (current_date.year != row[DATE].date->year
+            || current_date.month != row[DATE].date->month
+            || current_date.day != row[DATE].date->day) {
+            
+            fprintf(f, "Date:%04d-%02d-%02d;AP_swap:%ld\n", current_date.year, current_date.month, current_date.day, AP_swap);
+            last_AP = 0;
+            AP_swap = 0;
+            current_date.year = row[DATE].date->year;
+            current_date.month = row[DATE].date->month;
+            current_date.day = row[DATE].date->day;
+        }
+        
+        if (row[APMAC].l != last_AP)
+            AP_swap++;
+        
+        last_AP = row[APMAC].l;
+    }
+    
+    fprintf(f, "end\n");
+}
+
+void record_day_stats(FILE *f, DEV_device *d) {
+    fprintf(f, "APCount:begin\n");
     
     CSV_cell *row = CSV_get_row(d->local_csv, 0);
     CSV_date current_date = {0};
@@ -222,16 +272,17 @@ void record_day_stats(FILE *f, Device *d) {
     fprintf(f, "end\n");
 }
 
-void record_device(FILE *f, DEVICE_device_list *dl, DEVICE_ap_list *apl, Device *d) {
-    CSV_cell *row = DEVICE_get_row(d, 0);
+void record_device(FILE *f, DEV_device_list *dl, DEV_ap_list *apl, DEV_device *d) {
+    CSV_cell *row = DEV_get_row(d, 0);
     char *mac = CSV_reverse_id(d->local_csv, MAC, row[MAC].l);
     
     fprintf(f, "Device:begin\n");
     
     record_global_stats(f, d);
-    record_schedule(f, dl, d);
-    record_ap_stats(f, apl, d);
+    record_schedule(f, dl, apl, d);
+//    record_ap_stats(f, apl, d);
     record_day_stats(f, d);
+    record_ap_swaps(f, apl, d);
     
     fprintf(f, "end\n");
 }

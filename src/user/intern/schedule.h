@@ -16,7 +16,7 @@ enum {
     STOP
 };
 
-#define SPEED_THRESHOLD .8
-#define CORRECTED_SPEED_THRESHOLD .4
+#define SPEED_THRESHOLD .1
+#define CORRECTED_SPEED_THRESHOLD .05
 
 #endif /* schedule_h */
