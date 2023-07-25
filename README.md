@@ -21,8 +21,10 @@ If you want to use the render engine to visualize the dataset, please do as foll
 ### Compilation
 
 To compile this code, just produce a new directory and use cmake :
+```
 $ mkdir build && cd build
 $ cmake .. && make
+```
 
 ## Scripts
 
@@ -43,7 +45,9 @@ feal free to take a look around but most of the code is messy
 
 A small report generator which produce a pdf file per user. The main file is resume_generator and uses the output of the main code to produce those stats.
 Use it as follow :
+```
 $ python3 resume_generator.py user_id.usr outputdir
+```
 
 Please make sure to fill the right path in tex.py for the moodtracker.sty file ! (and also that you have latex intalled on you computer)
 
